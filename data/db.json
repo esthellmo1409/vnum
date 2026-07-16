@@ -1,0 +1,674 @@
+{
+  "users": [
+    {
+      "id": 1,
+      "nome": "Esthellmo",
+      "email": "esthellmo_hangello@hotmail.com",
+      "senhaHash": "332a89e226bbf96d64667432ca06fb76:4ed91439dbf42580d476a7841182421e2cba769e543373ea1e986bf7dc3f234fc71930e0c537f0dd168d5f8cba80e675e78e4490a0c049fb02870d9c14e13926",
+      "saldoCentavos": 8000,
+      "isAdmin": false,
+      "criadoEm": "2026-07-13T20:53:52.329Z"
+    },
+    {
+      "id": 2,
+      "nome": "Esthellmo",
+      "email": "admin@seusite.com.br",
+      "senhaHash": "f9637cbf951b5cc14b1cee0db38bf043:2c4de5b2425029c00eef3e790817981a3ec4a6bae1b74c2b297a052cecf1f8b7d5bb593dd1a05b5957a575d82dbca12a264116bbee3e26909bc1a4bee5330c1e",
+      "saldoCentavos": 0,
+      "isAdmin": true,
+      "criadoEm": "2026-07-14T13:45:51.140Z"
+    },
+    {
+      "id": 3,
+      "nome": "jonas strud",
+      "email": "joao.r.souzza25@gmail.com",
+      "senhaHash": "d420c9268559c3800e7b4809718cc9a9:2351082fcc9494b77cb5ed0a9743fe41601305f7526cd223d8ac83d72c53583b215b2ee530564de3932abdeb87c927ddbbdabbcdf862316e30c4f4f26a8593a1",
+      "saldoCentavos": 200,
+      "isAdmin": false,
+      "criadoEm": "2026-07-14T18:20:55.378Z"
+    },
+    {
+      "id": 4,
+      "nome": "jiose",
+      "email": "jose_ribamar0020@hotmail.com",
+      "senhaHash": "2492f16e66c16166ce5ba0d76d5a8baa:696b178e57e321ca9aff393fc9b9c51ef9d2315e11dbc362e955d4fab2981646bb4d01a77222531090fc3627ea085ab5f14c0323d42dd4ccfe7e1d30196f12e3",
+      "saldoCentavos": 0,
+      "isAdmin": false,
+      "criadoEm": "2026-07-14T18:40:08.014Z"
+    },
+    {
+      "id": 5,
+      "nome": "hangello",
+      "email": "hangello_@hotmail.com",
+      "senhaHash": "4fb77ee316148dc875c8e894a6b95f6e:c6c051b4089286afc81199d738cd55315a2fe4a5481b701c148736c33c40b0e7009ebba35ff2cf63874d955d06c6fa871e1f43ad2088f5e7ff45da4aaa36808a",
+      "saldoCentavos": 0,
+      "isAdmin": false,
+      "criadoEm": "2026-07-14T18:41:06.445Z"
+    },
+    {
+      "id": 6,
+      "nome": "hangelo",
+      "email": "hangelo22@hotmail.com",
+      "senhaHash": "5effa8541324fb39d174cc1717412260:974a269382220f326c0769fdf76dd1bfe2172c7bfdb26983db81a0fa5e97d61262bca3a3838bd0d9fb74710aa2af99c0c7ddabfcbac81a5de0ddc159189bfc16",
+      "saldoCentavos": 0,
+      "isAdmin": false,
+      "criadoEm": "2026-07-14T18:43:09.994Z"
+    },
+    {
+      "id": 7,
+      "nome": "Rayson",
+      "email": "raysonthiagosp.@gmail.com.br",
+      "senhaHash": "3181a6a6b5d209c6b184e007e575e7c8:7ca607f1b261fa5d5a2e7246ba715166fd984ee950f658edf911daae3a908b226529e79e67a15a8fdb5e4d51da1d04c5ad25844f2e4997227ab42b9e5ff7ce3a",
+      "saldoCentavos": 0,
+      "isAdmin": false,
+      "criadoEm": "2026-07-14T21:27:10.110Z"
+    },
+    {
+      "id": 8,
+      "nome": "Ricardo",
+      "email": "ricardoromulomatos@gmail.com",
+      "senhaHash": "8e771cb74043e49267d86c0b642d376c:5300777e7022735862b45482a8c9dcbab0273d5e6ef345356e5e69596817000ec9f409aea55c7af18e51bfb45f1d9c6dbacd6e292527cfe9c5e28f35c5834bc6",
+      "saldoCentavos": 2000,
+      "isAdmin": false,
+      "criadoEm": "2026-07-15T00:10:05.809Z"
+    },
+    {
+      "id": 9,
+      "nome": "fernado sousa",
+      "email": "walmirapenha17@gmail.com",
+      "senhaHash": "0cc9d1bb5e8c593e570b5a375bb32f90:6a2f315759078810a985b2e2d176499eea05ed049de49ff448f8c50c10a8208f92af661c2b0a9c92706ba325c636288e9524d9cad06eb3e257182d783c6e8930",
+      "saldoCentavos": 0,
+      "isAdmin": false,
+      "criadoEm": "2026-07-15T02:18:33.251Z"
+    }
+  ],
+  "slots": [
+    {
+      "id": 2,
+      "numero": "+55 86 99421-3602",
+      "operadora": "Claro",
+      "pais": "BR",
+      "status": "ocupado",
+      "pedidoAtualId": 15
+    }
+  ],
+  "services": [
+    {
+      "id": 27,
+      "nome": "WhatsApp BR DDD Promocional",
+      "precoCentavos": 700,
+      "ativo": true
+    },
+    {
+      "id": 1,
+      "nome": "WhatsApp BR DDD Aleatório",
+      "precoCentavos": 900,
+      "ativo": true
+    },
+    {
+      "id": 28,
+      "nome": "WhatsApp BR Escolher DDD",
+      "precoCentavos": 1500,
+      "ativo": true
+    },
+    {
+      "id": 2,
+      "nome": "Instagram",
+      "precoCentavos": 900,
+      "ativo": true
+    },
+    {
+      "id": 3,
+      "nome": "Telegram",
+      "precoCentavos": 900,
+      "ativo": true
+    },
+    {
+      "id": 4,
+      "nome": "TikTok",
+      "precoCentavos": 900,
+      "ativo": true
+    },
+    {
+      "id": 5,
+      "nome": "Facebook",
+      "precoCentavos": 900,
+      "ativo": true
+    },
+    {
+      "id": 6,
+      "nome": "Twitter/X",
+      "precoCentavos": 900,
+      "ativo": true
+    },
+    {
+      "id": 7,
+      "nome": "Discord",
+      "precoCentavos": 900,
+      "ativo": true
+    },
+    {
+      "id": 8,
+      "nome": "Kwai",
+      "precoCentavos": 900,
+      "ativo": true
+    },
+    {
+      "id": 9,
+      "nome": "Tinder",
+      "precoCentavos": 900,
+      "ativo": true
+    },
+    {
+      "id": 10,
+      "nome": "iFood",
+      "precoCentavos": 900,
+      "ativo": true
+    },
+    {
+      "id": 11,
+      "nome": "Uber",
+      "precoCentavos": 900,
+      "ativo": true
+    },
+    {
+      "id": 12,
+      "nome": "99",
+      "precoCentavos": 900,
+      "ativo": true
+    },
+    {
+      "id": 13,
+      "nome": "Nubank",
+      "precoCentavos": 900,
+      "ativo": true
+    },
+    {
+      "id": 14,
+      "nome": "PicPay",
+      "precoCentavos": 900,
+      "ativo": true
+    },
+    {
+      "id": 15,
+      "nome": "Agibank",
+      "precoCentavos": 900,
+      "ativo": true
+    },
+    {
+      "id": 16,
+      "nome": "9Pay",
+      "precoCentavos": 900,
+      "ativo": true
+    },
+    {
+      "id": 17,
+      "nome": "Mercado Livre",
+      "precoCentavos": 900,
+      "ativo": true
+    },
+    {
+      "id": 18,
+      "nome": "OLX",
+      "precoCentavos": 900,
+      "ativo": true
+    },
+    {
+      "id": 19,
+      "nome": "Shopee",
+      "precoCentavos": 900,
+      "ativo": true
+    },
+    {
+      "id": 20,
+      "nome": "Amazon",
+      "precoCentavos": 900,
+      "ativo": true
+    },
+    {
+      "id": 21,
+      "nome": "Google",
+      "precoCentavos": 900,
+      "ativo": true
+    },
+    {
+      "id": 22,
+      "nome": "Netflix",
+      "precoCentavos": 900,
+      "ativo": true
+    },
+    {
+      "id": 23,
+      "nome": "Spotify",
+      "precoCentavos": 900,
+      "ativo": true
+    },
+    {
+      "id": 24,
+      "nome": "LinkedIn",
+      "precoCentavos": 900,
+      "ativo": true
+    },
+    {
+      "id": 25,
+      "nome": "Airbnb",
+      "precoCentavos": 900,
+      "ativo": true
+    },
+    {
+      "id": 26,
+      "nome": "PayPal",
+      "precoCentavos": 900,
+      "ativo": true
+    },
+    {
+      "id": 29,
+      "nome": "WhatsApp EUA",
+      "precoCentavos": 1200,
+      "ativo": false
+    },
+    {
+      "id": 30,
+      "nome": "WhatsApp Portugal",
+      "precoCentavos": 1200,
+      "ativo": false
+    },
+    {
+      "id": 31,
+      "nome": "WhatsApp México",
+      "precoCentavos": 1200,
+      "ativo": false
+    },
+    {
+      "id": 32,
+      "nome": "WhatsApp Argentina",
+      "precoCentavos": 1200,
+      "ativo": false
+    },
+    {
+      "id": 33,
+      "nome": "WhatsApp Internacional",
+      "precoCentavos": 390,
+      "ativo": true
+    }
+  ],
+  "orders": [
+    {
+      "id": 1,
+      "userId": 1,
+      "servicoId": 1,
+      "servicoNome": "WhatsApp",
+      "slotId": 1,
+      "numero": "+55 99 98506-9142",
+      "pais": "BR",
+      "status": "cancelado",
+      "mensagemRecebida": null,
+      "codigo": null,
+      "criadoEm": "2026-07-14T16:16:18.033Z",
+      "expiraEm": "2026-07-14T16:34:18.033Z"
+    },
+    {
+      "id": 2,
+      "userId": 1,
+      "servicoId": 1,
+      "servicoNome": "WhatsApp",
+      "slotId": 2,
+      "numero": "+55 86 99421-3602",
+      "pais": "BR",
+      "status": "cancelado",
+      "mensagemRecebida": null,
+      "codigo": null,
+      "criadoEm": "2026-07-14T16:20:16.111Z",
+      "expiraEm": "2026-07-14T16:38:16.111Z"
+    },
+    {
+      "id": 3,
+      "userId": 1,
+      "servicoId": 1,
+      "servicoNome": "WhatsApp",
+      "slotId": 2,
+      "numero": "+55 86 99421-3602",
+      "pais": "BR",
+      "status": "aguardando",
+      "mensagemRecebida": null,
+      "codigo": null,
+      "criadoEm": "2026-07-14T16:23:11.710Z",
+      "expiraEm": "2026-07-14T16:41:11.710Z"
+    },
+    {
+      "id": 4,
+      "userId": 1,
+      "servicoId": 1,
+      "servicoNome": "WhatsApp",
+      "slotId": 2,
+      "numero": "+55 86 99421-3602",
+      "pais": "BR",
+      "status": "cancelado",
+      "mensagemRecebida": null,
+      "codigo": null,
+      "criadoEm": "2026-07-14T16:23:31.432Z",
+      "expiraEm": "2026-07-14T16:41:31.432Z"
+    },
+    {
+      "id": 5,
+      "userId": 1,
+      "servicoId": 1,
+      "servicoNome": "WhatsApp",
+      "slotId": 2,
+      "numero": "+55 86 99421-3602",
+      "pais": "BR",
+      "status": "aguardando",
+      "mensagemRecebida": null,
+      "codigo": null,
+      "criadoEm": "2026-07-14T16:33:15.911Z",
+      "expiraEm": "2026-07-14T16:51:15.911Z"
+    },
+    {
+      "id": 6,
+      "userId": 1,
+      "servicoId": 1,
+      "servicoNome": "WhatsApp",
+      "slotId": 2,
+      "numero": "+55 86 99421-3602",
+      "pais": "BR",
+      "status": "recebido",
+      "mensagemRecebida": "789654",
+      "codigo": "789654",
+      "criadoEm": "2026-07-14T16:33:40.625Z",
+      "expiraEm": "2026-07-14T16:51:40.625Z"
+    },
+    {
+      "id": 7,
+      "userId": 1,
+      "servicoId": 1,
+      "servicoNome": "WhatsApp",
+      "slotId": 3,
+      "numero": "+55 99  98506-9143",
+      "pais": "BR",
+      "status": "recebido",
+      "mensagemRecebida": "789654",
+      "codigo": "789654",
+      "criadoEm": "2026-07-14T16:35:32.233Z",
+      "expiraEm": "2026-07-14T16:53:32.233Z"
+    },
+    {
+      "id": 8,
+      "userId": 1,
+      "servicoId": 1,
+      "servicoNome": "WhatsApp",
+      "slotId": 2,
+      "numero": "+55 86 99421-3602",
+      "pais": "BR",
+      "status": "expirado",
+      "mensagemRecebida": null,
+      "codigo": null,
+      "criadoEm": "2026-07-14T16:40:54.952Z",
+      "expiraEm": "2026-07-14T16:58:54.952Z"
+    },
+    {
+      "id": 9,
+      "userId": 1,
+      "servicoId": 1,
+      "servicoNome": "WhatsApp",
+      "slotId": 2,
+      "numero": "+55 86 99421-3602",
+      "pais": "BR",
+      "status": "recebido",
+      "mensagemRecebida": "485658",
+      "codigo": "485658",
+      "criadoEm": "2026-07-14T17:57:56.540Z",
+      "expiraEm": "2026-07-14T18:15:56.540Z"
+    },
+    {
+      "id": 10,
+      "userId": 3,
+      "servicoId": 1,
+      "servicoNome": "WhatsApp",
+      "slotId": 2,
+      "numero": "+55 86 99421-3602",
+      "pais": "BR",
+      "status": "aguardando",
+      "mensagemRecebida": null,
+      "codigo": null,
+      "criadoEm": "2026-07-14T18:22:29.756Z",
+      "expiraEm": "2026-07-14T18:40:29.756Z"
+    },
+    {
+      "id": 11,
+      "userId": 3,
+      "servicoId": 2,
+      "servicoNome": "Instagram",
+      "slotId": 2,
+      "numero": "+55 86 99421-3602",
+      "pais": "BR",
+      "status": "aguardando",
+      "mensagemRecebida": null,
+      "codigo": null,
+      "criadoEm": "2026-07-14T18:28:56.512Z",
+      "expiraEm": "2026-07-14T18:46:56.512Z"
+    },
+    {
+      "id": 12,
+      "userId": 1,
+      "servicoId": 1,
+      "servicoNome": "WhatsApp BR DDD Aleatório",
+      "slotId": 2,
+      "numero": "+55 86 99421-3602",
+      "pais": "BR",
+      "status": "aguardando",
+      "mensagemRecebida": null,
+      "codigo": null,
+      "criadoEm": "2026-07-15T01:08:59.141Z",
+      "expiraEm": "2026-07-15T01:26:59.141Z"
+    },
+    {
+      "id": 13,
+      "userId": 1,
+      "servicoId": 1,
+      "servicoNome": "WhatsApp BR DDD Aleatório",
+      "slotId": 2,
+      "numero": "+55 86 99421-3602",
+      "pais": "BR",
+      "status": "recebido",
+      "mensagemRecebida": "147852",
+      "codigo": "147852",
+      "criadoEm": "2026-07-15T02:00:37.131Z",
+      "expiraEm": "2026-07-15T02:18:37.131Z"
+    },
+    {
+      "id": 14,
+      "userId": 1,
+      "servicoId": 1,
+      "servicoNome": "WhatsApp BR DDD Aleatório",
+      "slotId": 2,
+      "numero": "+55 86 99421-3602",
+      "pais": "BR",
+      "status": "recebido",
+      "mensagemRecebida": "741852",
+      "codigo": "741852",
+      "criadoEm": "2026-07-15T14:24:18.971Z",
+      "expiraEm": "2026-07-15T14:42:18.971Z"
+    },
+    {
+      "id": 15,
+      "userId": 1,
+      "servicoId": 1,
+      "servicoNome": "WhatsApp BR DDD Aleatório",
+      "slotId": 2,
+      "numero": "+55 86 99421-3602",
+      "pais": "BR",
+      "status": "recebido",
+      "mensagemRecebida": "478596",
+      "codigo": "478596",
+      "criadoEm": "2026-07-16T00:43:08.496Z",
+      "expiraEm": "2026-07-16T01:01:08.496Z"
+    },
+    {
+      "id": 16,
+      "userId": 1,
+      "servicoId": 3,
+      "servicoNome": "Telegram",
+      "slotId": null,
+      "numero": "+13436371621",
+      "pais": "US",
+      "origem": "5sim",
+      "sim5PedidoId": 1051186686,
+      "status": "cancelado",
+      "mensagemRecebida": null,
+      "codigo": null,
+      "criadoEm": "2026-07-16T01:40:54.205Z",
+      "expiraEm": "2026-07-16T01:58:54.205Z"
+    },
+    {
+      "id": 17,
+      "userId": 1,
+      "servicoId": 29,
+      "servicoNome": "WhatsApp EUA",
+      "slotId": null,
+      "numero": "+17095063099",
+      "pais": "US",
+      "origem": "5sim",
+      "sim5PedidoId": 1051198605,
+      "status": "cancelado",
+      "mensagemRecebida": null,
+      "codigo": null,
+      "criadoEm": "2026-07-16T02:09:58.918Z",
+      "expiraEm": "2026-07-16T02:27:58.918Z"
+    }
+  ],
+  "transactions": [
+    {
+      "id": 1,
+      "userId": 1,
+      "valorCentavos": 500,
+      "metodo": "pix",
+      "status": "cancelled",
+      "mpPaymentId": 167983666517,
+      "criadoEm": "2026-07-15T00:50:01.532Z"
+    },
+    {
+      "id": 1,
+      "userId": 1,
+      "valorCentavos": 500,
+      "metodo": "pix",
+      "status": "pending",
+      "mpPaymentId": 167983847815,
+      "criadoEm": "2026-07-15T01:05:56.582Z"
+    },
+    {
+      "id": 1,
+      "userId": 1,
+      "valorCentavos": 500,
+      "metodo": "pix",
+      "status": "pending",
+      "mpPaymentId": 168850750688,
+      "criadoEm": "2026-07-15T01:13:35.058Z"
+    },
+    {
+      "id": 1,
+      "userId": 1,
+      "valorCentavos": 600,
+      "metodo": "pix",
+      "status": "pending",
+      "mpPaymentId": 168851353326,
+      "criadoEm": "2026-07-15T01:25:12.616Z"
+    },
+    {
+      "id": 1,
+      "userId": 1,
+      "valorCentavos": 500,
+      "metodo": "pix",
+      "status": "pending",
+      "mpPaymentId": 167987896669,
+      "criadoEm": "2026-07-15T01:31:21.384Z"
+    },
+    {
+      "id": 1,
+      "userId": 1,
+      "valorCentavos": 500,
+      "metodo": "pix",
+      "status": "pending",
+      "mpPaymentId": 167988922761,
+      "criadoEm": "2026-07-15T01:43:15.538Z"
+    },
+    {
+      "id": 1,
+      "userId": 1,
+      "valorCentavos": 500,
+      "metodo": "pix",
+      "status": "pending",
+      "mpPaymentId": 168855194736,
+      "criadoEm": "2026-07-15T02:01:22.264Z"
+    },
+    {
+      "id": 1,
+      "userId": 1,
+      "valorCentavos": 500,
+      "metodo": "pix",
+      "status": "pending",
+      "mpPaymentId": 167990821043,
+      "criadoEm": "2026-07-15T02:12:08.582Z"
+    },
+    {
+      "id": 1,
+      "userId": 9,
+      "valorCentavos": 2000,
+      "metodo": "pix",
+      "status": "pending",
+      "mpPaymentId": 167993134117,
+      "criadoEm": "2026-07-15T02:18:47.881Z"
+    },
+    {
+      "id": 1,
+      "userId": 9,
+      "valorCentavos": 2000,
+      "metodo": "cartao",
+      "status": "pendente",
+      "mpPreferenceId": "3543734902-24d13e95-9c43-496e-b063-8a8d46900b0b",
+      "criadoEm": "2026-07-15T02:18:50.565Z"
+    },
+    {
+      "id": 1,
+      "userId": 8,
+      "valorCentavos": 2000,
+      "metodo": "pix",
+      "status": "pending",
+      "mpPaymentId": 168862523330,
+      "criadoEm": "2026-07-15T03:46:55.425Z"
+    },
+    {
+      "id": 1,
+      "userId": 1,
+      "valorCentavos": 1000,
+      "metodo": "pix",
+      "status": "pending",
+      "mpPaymentId": 168902981106,
+      "criadoEm": "2026-07-15T13:33:54.126Z"
+    },
+    {
+      "id": 1,
+      "userId": 1,
+      "valorCentavos": 2000,
+      "metodo": "pix",
+      "status": "pending",
+      "mpPaymentId": 168911251228,
+      "criadoEm": "2026-07-15T14:27:18.548Z"
+    },
+    {
+      "id": 1,
+      "userId": 1,
+      "valorCentavos": 1000,
+      "metodo": "pix",
+      "status": "pending",
+      "mpPaymentId": 168143479775,
+      "criadoEm": "2026-07-16T00:43:31.966Z"
+    }
+  ],
+  "_seq": {
+    "users": 10,
+    "slots": 4,
+    "services": 34,
+    "orders": 18,
+    "transactions": 1
+  }
+}

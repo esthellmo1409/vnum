@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Painel — SimSMS Virtual</title>
+<link rel="stylesheet" href="/css/style.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/dist/tabler-icons.min.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/lipis/flag-icons@7.2.3/css/flag-icons.min.css">
+</head>
+<body>
+<div class="app-shell">
+  <aside class="sidebar">
+    <div class="brand"><span class="brand-mark"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"></path></svg><span class="brand-dot"></span></span> SimSMS Virtual</div>
+    <a class="side-link active" href="/dashboard.html"><i class="ti ti-device-mobile" aria-hidden="true"></i> Números Virtuais</a>
+    <a class="side-link" href="#" id="link-recarga"><i class="ti ti-wallet" aria-hidden="true"></i> Recargas</a>
+    <a class="side-link" href="#" id="link-suporte"><i class="ti ti-brand-whatsapp" aria-hidden="true"></i> Suporte</a>
+    <div class="side-spacer"></div>
+    <a class="side-link" href="#" id="btn-sair"><i class="ti ti-logout" aria-hidden="true"></i> Sair</a>
+  </aside>
+
+  <main class="main">
+    <div class="page-head">
+      <div>
+        <h1>Olá, <span id="nome-usuario">—</span></h1>
+        <p>Acompanhe seus pedidos e escolha um serviço pra receber um número novo.</p>
+      </div>
+      <div class="user-menu">
+        <button class="user-menu-btn" id="user-menu-btn"><i class="ti ti-user" aria-hidden="true"></i> <span id="user-menu-nome">—</span> <i class="ti ti-chevron-down" aria-hidden="true"></i></button>
+        <div class="user-menu-panel" id="user-menu-panel">
+          <div class="user-menu-item"><i class="ti ti-user" aria-hidden="true"></i> <span id="user-menu-email">—</span></div>
+          <div class="user-menu-item"><i class="ti ti-wallet" aria-hidden="true"></i> Saldo: <strong id="user-menu-saldo">R$ 0,00</strong></div>
+          <div class="user-menu-divider"></div>
+          <div class="user-menu-item user-menu-sair" id="menu-sair"><i class="ti ti-logout" aria-hidden="true"></i> Sair</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="quick-bar">
+      <a class="pill pill-green" href="#" id="link-ajuda-whatsapp"><i class="ti ti-brand-whatsapp" aria-hidden="true"></i> Precisa de ajuda? Fale no WhatsApp</a>
+      <a class="pill pill-skyblue" href="#" id="link-canal-telegram"><i class="ti ti-brand-telegram" aria-hidden="true"></i> Nosso canal no Telegram</a>
+      <a class="pill pill-amber" href="#" id="link-tutorial"><i class="ti ti-book" aria-hidden="true"></i> Tutorial de como usar a plataforma</a>
+      <div class="atalho-dropdown">
+        <button class="pill pill-whatsapp" id="btn-atalho-whatsapp"><i class="ti ti-brand-whatsapp" aria-hidden="true"></i> Comprar WhatsApp Brasileiro (Atalho) <i class="ti ti-chevron-down" aria-hidden="true"></i></button>
+        <div class="atalho-menu" id="atalho-menu">
+          <div class="atalho-item" data-tipo="aleatorio"><i class="ti ti-arrows-shuffle" aria-hidden="true"></i> WhatsApp BR DDD Aleatório <span class="atalho-preco" id="atalho-preco-aleatorio"></span></div>
+          <div class="atalho-item" data-tipo="promocional"><i class="ti ti-discount-2" aria-hidden="true"></i> WhatsApp BR Promocional <span class="atalho-preco" id="atalho-preco-promocional"></span></div>
+          <div class="atalho-item" data-tipo="ddd"><i class="ti ti-star" aria-hidden="true"></i> WhatsApp BR Escolher DDD <span class="atalho-preco" id="atalho-preco-ddd"></span></div>
+        </div>
+      </div>
+      <div class="quick-bar-spacer"></div>
+      <span class="pill pill-blue"><i class="ti ti-wallet" aria-hidden="true"></i> Saldo: <strong id="saldo">R$ 0,00</strong></span>
+      <button class="btn btn-teal btn-sm" id="btn-add-creditos">Adicionar saldo</button>
+    </div>
+
+    <div class="dashboard-grid">
+      <div class="pedidos-col">
+        <div class="panel-box">
+          <div class="col-banner">Meus pedidos</div>
+          <div class="table-wrap" style="border:none; border-radius:0 0 var(--radius) var(--radius);">
+            <table>
+              <thead><tr><th>Número</th><th>Status</th><th>Código</th><th>Serviço</th><th>Valor</th><th>Data</th><th></th></tr></thead>
+              <tbody id="pedidos-body"></tbody>
+            </table>
+          </div>
+          <div class="empty-state" id="pedidos-vazio" style="display:none;">
+            <h3>Nenhum pedido ainda</h3>
+            <p>Escolha um serviço ao lado pra receber seu primeiro número.</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="catalogo-col">
+        <div class="panel-box" style="margin-bottom:16px;">
+          <div class="col-banner">Selecione o país</div>
+          <input type="text" id="busca-pais" placeholder="Buscar pais..." class="input-busca-pais" oninput="filtrarPaises(this.value)">
+          <div id="paises-list" class="paises-list"></div>
+        </div>
+        <div class="panel-box">
+          <div class="col-banner">Selecione o serviço desejado</div>
+          <div class="services-box" style="border:none; border-radius:0 0 var(--radius) var(--radius);">
+            <div id="services-list" class="grid-services" style="grid-template-columns:repeat(2,1fr);"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
+
+<!-- Modal: pedido em andamento -->
+<div class="modal-bg" id="modal-pedido">
+  <div class="modal" style="position:relative; max-width:440px;">
+    <span class="close-x" data-close="modal-pedido">&times;</span>
+    <h3 id="pedido-servico">Aguardando número…</h3>
+    <div class="number-reel" id="pedido-numero" style="margin-bottom:14px;">—</div>
+    <div class="status-pill" id="pedido-status" style="margin-bottom:14px;"><span class="dot"></span> aguardando SMS</div>
+    <div class="bubble" id="pedido-sms" style="display:none;"></div>
+
+    <div class="pedido-progress-wrap" id="pedido-progress-wrap">
+      <div class="pedido-progress-bar" id="pedido-progress-bar"></div>
+    </div>
+    <div class="pedido-progress-legenda">
+      <span id="pedido-tempo-restante">18:00</span>
+      <span id="pedido-tempo-total">restantes</span>
+    </div>
+
+    <div style="margin-top:18px; display:flex; gap:10px;">
+      <button class="btn btn-ghost btn-block" id="btn-cancelar-pedido" disabled>Aguarde 2:00 para cancelar</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: adicionar créditos -->
+<div class="modal-bg" id="modal-recarga">
+  <div class="modal" style="position:relative;">
+    <span class="close-x" data-close="modal-recarga">&times;</span>
+    <h3>Adicionar créditos</h3>
+    <div class="form-msg" id="msg-recarga"></div>
+    <div class="field">
+      <label>Valor (R$)</label>
+      <input type="number" id="valor-recarga" min="5" step="5" value="20">
+    </div>
+    <div style="display:flex; gap:10px; margin-bottom:14px;">
+      <button class="btn btn-teal btn-block" id="btn-pix">Pagar com Pix</button>
+      <button class="btn btn-ghost btn-block" id="btn-cartao">Pagar com cartão</button>
+    </div>
+    <div id="area-pix" style="display:none;">
+      <div class="qr-box">
+        <img id="pix-qr-img" src="" alt="QR code Pix">
+        <div class="copy-code" id="pix-copia-cola" title="Clique para copiar">—</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: escolher DDD (premium) -->
+<div class="modal-bg" id="modal-ddd">
+  <div class="modal" style="position:relative; max-width:480px; padding:0; overflow:hidden;">
+    <div class="ddd-header">
+      <i class="ti ti-star" aria-hidden="true"></i>
+      <strong>WhatsApp BR Premium — Escolha seu DDD</strong>
+      <span class="close-x" data-close="modal-ddd" style="position:static; color:#fff; margin-left:auto;">&times;</span>
+    </div>
+    <div style="padding:20px;">
+      <div class="ddd-info-box">
+        <strong>Número Premium com escolha de DDD</strong><br>
+        Você está adquirindo um número premium com escolha de DDD.
+      </div>
+      <div class="ddd-warning-box">
+        <strong><i class="ti ti-alert-triangle" aria-hidden="true"></i> Aviso importante sobre disponibilidade</strong><br>
+        A disponibilidade de números com escolha de DDD pode oscilar ao longo do dia, já que é um serviço mais exclusivo. Se não encontrar a região desejada, considere comprar o WhatsApp Brasileiro com DDD aleatório.
+      </div>
+      <div class="field">
+        <label>Selecione o DDD desejado</label>
+        <select id="ddd-select"><option value="">-- Selecione um DDD --</option></select>
+      </div>
+      <div class="ddd-valor" id="ddd-valor">Valor: R$ 0,00</div>
+      <div style="display:flex; gap:10px;">
+        <button class="btn btn-ghost btn-block" data-close="modal-ddd">Cancelar</button>
+        <button class="btn btn-teal btn-block" id="btn-comprar-ddd">Comprar com DDD selecionado</button>
+      </div>
+      <div style="text-align:center; margin-top:16px; font-size:12.5px; color:var(--text-dim);">
+        Não encontrou o DDD desejado?<br>
+        <a href="#" id="link-fallback-aleatorio" style="color:var(--primary); font-weight:600;">Comprar número com DDD aleatório</a>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="/js/dashboard.js"></script>
+</body>
+</html>
