@@ -289,6 +289,7 @@ async function carregarPedidosAdmin() {
 
 // ----- Usuários -----
 let usuarioParaRedefinir = null;
+let usuarioParaRetirar = null;
 async function carregarUsuarios() {
   const res = await fetch('/api/admin/usuarios');
   const data = await res.json();
@@ -299,7 +300,9 @@ async function carregarUsuarios() {
       <td style="font-family:var(--mono)">R$ ${centavosParaReais(u.saldoCentavos)}</td>
       <td>
         <button class="btn btn-ghost btn-sm" onclick="abrirCreditar(${u.id}, '${u.nome.replace(/'/g, "\\'")}')">Creditar saldo</button>
+        <button class="btn btn-ghost btn-sm" onclick="abrirRetirar(${u.id}, '${u.nome.replace(/'/g, "\\'")}')">Retirar saldo</button>
         <button class="btn btn-ghost btn-sm" onclick="abrirRedefinirSenha(${u.id}, '${u.nome.replace(/'/g, "\\'")}')">Redefinir senha</button>
+        <button class="btn btn-ghost btn-sm" style="color:var(--red)" onclick="excluirUsuario(${u.id}, '${u.nome.replace(/'/g, "\\'")}')">Excluir</button>
       </td>
     </tr>
   `).join('');
@@ -323,6 +326,33 @@ document.getElementById('confirmar-creditar').addEventListener('click', async ()
   document.getElementById('modal-creditar').classList.remove('show');
   carregarUsuarios();
 });
+
+function abrirRetirar(userId, nome) {
+  usuarioParaRetirar = userId;
+  document.getElementById('retirar-usuario-nome').textContent = `Cliente: ${nome}`;
+  document.getElementById('retirar-valor').value = '';
+  document.getElementById('modal-retirar').classList.add('show');
+}
+document.getElementById('confirmar-retirar').addEventListener('click', async () => {
+  const valorReais = Number(document.getElementById('retirar-valor').value);
+  if (!valorReais || valorReais <= 0) return alert('Informe um valor válido.');
+  const res = await fetch(`/api/admin/usuarios/${usuarioParaRetirar}/retirar`, {
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ valorReais })
+  });
+  const data = await res.json();
+  if (!res.ok) return alert(data.erro);
+  document.getElementById('modal-retirar').classList.remove('show');
+  carregarUsuarios();
+});
+
+async function excluirUsuario(userId, nome) {
+  if (!confirm(`Tem certeza que deseja excluir o usuário ${nome}? Essa ação não pode ser desfeita.`)) return;
+  const res = await fetch(`/api/admin/usuarios/${userId}`, { method: 'DELETE' });
+  const data = await res.json();
+  if (!res.ok) return alert(data.erro);
+  carregarUsuarios();
+}
 
 function abrirRedefinirSenha(userId, nome) {
   usuarioParaRedefinir = userId;

@@ -19,7 +19,7 @@ function calcularPrecoVendaCentavos(custoReaisCentavos, db) {
   return Math.max(opcaoMultiplicador, opcaoFixa);
 }
 
-const NORMALIZACOES_PAIS_5SIM = { US: 'usa', GB: 'uk', KR: 'southkorea', AE: 'uae', CZ: 'czechrepublic', DO: 'dominicanrepublic', NZ: 'newzealand', ZA: 'southafrica', SA: 'saudiarabia' };
+const NORMALIZACOES_PAIS_5SIM = { US: 'usa', GB: 'england', KR: 'southkorea', AE: 'uae', CZ: 'czechrepublic', DO: 'dominicanrepublic', NZ: 'newzealand', ZA: 'southafrica', SA: 'saudiarabia' };
 function pais5simPorIso(iso) {
   if (NORMALIZACOES_PAIS_5SIM[iso]) return NORMALIZACOES_PAIS_5SIM[iso];
   try {
@@ -617,6 +617,30 @@ async function api(req, res, pathname, method) {
         if (!u) return sendJson(res, 404, { erro: 'Usuário não encontrado.' });
         u.saldoCentavos += Math.round(valorReais * 100);
         return sendJson(res, 200, { usuario: publicUser(u) });
+      });
+    }
+
+    // Retira (debita) saldo manualmente de um usuario, sem deixar negativo
+    const retirarMatch = pathname.match(/^\/api\/admin\/usuarios\/(\d+)\/retirar$/);
+    if (retirarMatch && method === 'POST') {
+      const { valorReais } = await readBody(req);
+      if (!valorReais || valorReais <= 0) return sendJson(res, 400, { erro: 'Informe um valor válido.' });
+      return transact((db) => {
+        const u = db.users.find((x) => x.id === Number(retirarMatch[1]));
+        if (!u) return sendJson(res, 404, { erro: 'Usuário não encontrado.' });
+        u.saldoCentavos = Math.max(0, u.saldoCentavos - Math.round(valorReais * 100));
+        return sendJson(res, 200, { usuario: publicUser(u) });
+      });
+    }
+
+    // Exclui um usuario
+    const excluirUsuarioMatch = pathname.match(/^\/api\/admin\/usuarios\/(\d+)$/);
+    if (excluirUsuarioMatch && method === 'DELETE') {
+      return transact((db) => {
+        const idx = db.users.findIndex((x) => x.id === Number(excluirUsuarioMatch[1]));
+        if (idx === -1) return sendJson(res, 404, { erro: 'Usuário não encontrado.' });
+        db.users.splice(idx, 1);
+        return sendJson(res, 200, { ok: true });
       });
     }
 
