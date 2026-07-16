@@ -215,6 +215,19 @@ function selecionarPais(codigo) {
   carregarCatalogo();
 }
 
+function mostrarPainelPais() {
+  const box = document.getElementById('painel-pais-box');
+  if (box) box.style.display = 'block';
+}
+
+function selecionarServico(id) {
+  const preco = document.getElementById('preco-' + id);
+  const btn = document.getElementById('btn-comprar-' + id);
+  if (preco) preco.style.display = 'block';
+  if (btn) btn.style.display = 'block';
+  mostrarPainelPais();
+}
+
 let servicosCarregados = [];
 
 async function carregarCatalogo() {
@@ -224,7 +237,7 @@ async function carregarCatalogo() {
   precoPorServicoId = {};
   data.servicos.forEach(s => { precoPorServicoId[s.id] = s.precoCentavos; });
   const lista = document.getElementById('services-list');
-  let servicosParaMostrar = data.servicos;
+  let servicosParaMostrar = data.servicos.filter(s => s.nome !== 'WhatsApp Internacional');
   if (paisSelecionado && paisSelecionado !== 'BR') {
     servicosParaMostrar = data.servicos.filter(s => !s.nome.toLowerCase().includes(' br '));
     const precosPromises = servicosParaMostrar.map(function(s) {
@@ -236,13 +249,12 @@ async function carregarCatalogo() {
     });
   }
   lista.innerHTML = servicosParaMostrar.map(s => {
-    const { icone, bg, sombra, txt } = iconeDoServico(s.nome);
+    const { icone, bg, txt } = iconeDoServico(s.nome);
     return `
-    <div class="service-card">
-      <div class="service-icon" style="background:${bg}; box-shadow:0 4px 10px -4px ${sombra}99; color:${txt || '#fff'};"><i class="ti ${icone}" aria-hidden="true"></i></div>
-      <h3>${s.nome}</h3>
-      <div class="price">R$ ${centavosParaReais(s.precoCentavos)}</div>
-      <button class="btn btn-teal btn-sm btn-block" style="margin-top:8px;" onclick="comprarNumero(${s.id})">Comprar</button>
+    <div class="service-row" onclick="comprarNumero(${s.id})">
+      <span class="service-row-icon" style="background:${bg}; color:${txt || '#fff'};"><i class="ti ${icone}" aria-hidden="true"></i></span>
+      <span class="service-row-nome">${s.nome}</span>
+      <span class="service-row-preco">R$ ${centavosParaReais(s.precoCentavos)}</span>
     </div>
   `;
   }).join('');

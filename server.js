@@ -225,7 +225,7 @@ async function api(req, res, pathname, method) {
     try {
       const precosConsulta = await sim5.buscarPreco(pais5simConsulta, produto5simConsulta);
       let menorCustoConsulta = Infinity;
-      if (precosConsulta) { for (const op in precosConsulta) { if (precosConsulta[op].count > 0 && precosConsulta[op].cost < menorCustoConsulta) { menorCustoConsulta = precosConsulta[op].cost; } } }
+      if (precosConsulta) { for (const op in precosConsulta) { if (precosConsulta[op].cost < menorCustoConsulta) { menorCustoConsulta = precosConsulta[op].cost; } } }
       if (menorCustoConsulta === Infinity) return sendJson(res, 200, { precoCentavos: null });
       const cambioResConsulta = await fetch('https://open.er-api.com/v6/latest/USD');
       const cambioDataConsulta = await cambioResConsulta.json();
@@ -284,8 +284,7 @@ async function api(req, res, pathname, method) {
       if (pais5sim && produto5sim) {
         try {
           const precos = await sim5.buscarPreco(pais5sim, produto5sim);
-          let operadoraEscolhida = null;
-          if (precos) { let menorCusto = Infinity; for (const op in precos) { if (precos[op].count > 0 && precos[op].cost < menorCusto) { menorCusto = precos[op].cost; operadoraEscolhida = op; } } }
+          const operadoraEscolhida = precos ? 'any' : null;
           if (operadoraEscolhida) { compra5sim = await sim5.comprarNumero(pais5sim, operadoraEscolhida, produto5sim); }
           if (compra5sim) {
             try {

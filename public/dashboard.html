@@ -71,16 +71,13 @@
       </div>
 
       <div class="catalogo-col">
-        <div class="panel-box" style="margin-bottom:16px;">
-          <div class="col-banner">Selecione o país</div>
+        <div class="panel-box">
+          <div class="col-banner">Selecione País e Serviço Desejado</div>
+          <div class="services-box" style="border:none;">
+            <div id="services-list" class="services-rows"></div>
+          </div>
           <input type="text" id="busca-pais" placeholder="Buscar pais..." class="input-busca-pais" oninput="filtrarPaises(this.value)">
           <div id="paises-list" class="paises-list"></div>
-        </div>
-        <div class="panel-box">
-          <div class="col-banner">Selecione o serviço desejado</div>
-          <div class="services-box" style="border:none; border-radius:0 0 var(--radius) var(--radius);">
-            <div id="services-list" class="grid-services" style="grid-template-columns:repeat(2,1fr);"></div>
-          </div>
         </div>
       </div>
     </div>
