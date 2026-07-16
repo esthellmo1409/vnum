@@ -295,6 +295,25 @@ function abrirModalPedido(pedido) {
   pollTimer = setInterval(() => pollPedido(pedido.id), 2500);
 }
 
+function tocarSomCodigoRecebido() {
+  try {
+    const ctx = new (window.AudioContext || window.webkitAudioContext)();
+    const notas = [{tempo:0,freq:1046},{tempo:0.15,freq:1318},{tempo:0.3,freq:1046},{tempo:0.45,freq:1318}];
+    notas.forEach(function(n) {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = 'square';
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.frequency.value = n.freq;
+      gain.gain.setValueAtTime(1, ctx.currentTime + n.tempo);
+      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + n.tempo + 0.14);
+      osc.start(ctx.currentTime + n.tempo);
+      osc.stop(ctx.currentTime + n.tempo + 0.14);
+    });
+  } catch (e) {}
+}
+
 function atualizarStatusPedidoUI(pedido) {
   const statusEl = document.getElementById('pedido-status');
   const smsEl = document.getElementById('pedido-sms');
@@ -305,6 +324,7 @@ function atualizarStatusPedidoUI(pedido) {
     statusEl.innerHTML = '<span class="dot"></span> código recebido!';
     smsEl.style.display = 'block';
     smsEl.innerHTML = pedido.mensagemRecebida + (pedido.codigo ? ` <br><strong style="color:var(--amber)">Código: ${pedido.codigo}</strong>` : '');
+    tocarSomCodigoRecebido();
     clearInterval(pollTimer);
     clearInterval(contadorTimer);
   } else if (pedido.status === 'expirado') {

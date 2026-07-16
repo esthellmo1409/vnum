@@ -426,6 +426,7 @@ function tocarSomAlerta() {
   document.addEventListener('click', pararAlarmeContinuo);
 }
 let ultimoPedidoIdConhecido = null;
+let statusPedidosConhecidos = {};
 const tituloOriginalPagina = document.title;
 let piscaTituloInterval = null;
 function piscarTitulo() {
@@ -447,8 +448,17 @@ async function verificarNovosPedidos() {
     const data = await res.json();
     if (!data.pedidos || data.pedidos.length === 0) return;
     const maiorId = Math.max.apply(null, data.pedidos.map(function(p) { return p.id; }));
-    if (ultimoPedidoIdConhecido === null) { ultimoPedidoIdConhecido = maiorId; return; }
-    if (maiorId > ultimoPedidoIdConhecido) { ultimoPedidoIdConhecido = maiorId; tocarSomAlerta(); piscarTitulo(); }
+    const primeiraChecagem = ultimoPedidoIdConhecido === null;
+    if (primeiraChecagem) { ultimoPedidoIdConhecido = maiorId; }
+    else if (maiorId > ultimoPedidoIdConhecido) { ultimoPedidoIdConhecido = maiorId; tocarSomAlerta(); piscarTitulo(); }
+    data.pedidos.forEach(function(p) {
+      const statusAnterior = statusPedidosConhecidos[p.id];
+      if (!primeiraChecagem && statusAnterior && statusAnterior !== 'recebido' && p.status === 'recebido') {
+        tocarSomAlerta();
+        piscarTitulo();
+      }
+      statusPedidosConhecidos[p.id] = p.status;
+    });
   } catch (e) {}
 }
 setInterval(verificarNovosPedidos, 5000);
