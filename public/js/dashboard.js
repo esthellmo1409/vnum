@@ -1,7 +1,7 @@
 let pedidoAtual = null;
 let pollTimer = null;
 let contadorTimer = null;
-const PEDIDO_TOTAL_MS = 18 * 60 * 1000;
+const PEDIDO_TOTAL_MS = 15 * 60 * 1000;
 const PEDIDO_CANCEL_MIN_MS = 2 * 60 * 1000;
 
 function iniciarContador(pedido) {
@@ -328,7 +328,7 @@ function atualizarStatusPedidoUI(pedido) {
     clearInterval(pollTimer);
     clearInterval(contadorTimer);
   } else if (pedido.status === 'expirado') {
-    statusEl.innerHTML = 'expirado — valor não estornado (passou dos 18 minutos)';
+    statusEl.innerHTML = 'expirado — valor não estornado (passou dos 15 minutos)';
     clearInterval(pollTimer);
     clearInterval(contadorTimer);
   } else if (pedido.status === 'cancelado') {

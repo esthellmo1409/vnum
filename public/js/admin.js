@@ -276,11 +276,12 @@ async function carregarPedidosAdmin() {
   document.getElementById('admin-pedidos-body').innerHTML = data.pedidos.map(p => `
     <tr>
       <td>#${p.id}</td>
-      <td>usuário ${p.userId}</td>
+      <td>${p.usuarioNome || ('usuário ' + p.userId)}<br><small style="color:var(--muted)">${p.usuarioEmail || ''}</small></td>
       <td>${p.servicoNome}</td>
       <td style="font-family:var(--mono)">${p.numero}</td>
       <td><span class="tag ${p.status}">${p.status}</span></td>
       <td style="font-family:var(--mono)">${p.codigo || '—'}</td>
+      <td style="font-family:var(--mono)">R$ ${centavosParaReais(p.precoPagoCentavos || 0)}</td>
       <td>${new Date(p.criadoEm).toLocaleString('pt-BR')}</td>
     </tr>
   `).join('');

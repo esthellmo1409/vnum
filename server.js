@@ -58,7 +58,7 @@ loadEnv();
 
 const PORT = process.env.PORT || 3000;
 const WEBHOOK_SECRET = process.env.CHIPEIRA_WEBHOOK_SECRET || 'troque-este-segredo';
-const PEDIDO_TTL_MS = 18 * 60 * 1000; // 18 minutos para o número expirar
+const PEDIDO_TTL_MS = 15 * 60 * 1000; // 15 minutos para o número expirar (igual ao prazo do 5SIM, evita erro ao cancelar/consultar apos expirar la)
 const PEDIDO_CANCEL_MIN_MS = 2 * 60 * 1000; // só pode cancelar depois de 2 minutos
 
 // ---------- Sessões (token em memória -> userId). Simples e suficiente ----------
@@ -367,20 +367,29 @@ async function api(req, res, pathname, method) {
   const cancelarMatch = pathname.match(/^\/api\/pedidos\/(\d+)\/cancelar$/);
   if (cancelarMatch && method === 'POST') {
     if (!user) return requireLogin();
+    const dbPeek = load();
+    const pedidoPeek = dbPeek.orders.find((o) => o.id === Number(cancelarMatch[1]) && o.userId === user.id);
+    if (!pedidoPeek) return sendJson(res, 404, { erro: 'Pedido não encontrado.' });
+    if (pedidoPeek.status !== 'aguardando') {
+      return sendJson(res, 400, { erro: 'Este pedido não pode mais ser cancelado.' });
+    }
+    const decorridoMsPeek = Date.now() - new Date(pedidoPeek.criadoEm).getTime();
+    if (decorridoMsPeek < PEDIDO_CANCEL_MIN_MS) {
+      const faltamSegPeek = Math.ceil((PEDIDO_CANCEL_MIN_MS - decorridoMsPeek) / 1000);
+      return sendJson(res, 400, { erro: `Aguarde mais ${faltamSegPeek} segundos para poder cancelar este pedido.` });
+    }
+    if (pedidoPeek.origem === '5sim' && pedidoPeek.sim5PedidoId) {
+      try { await sim5.cancelarPedido(pedidoPeek.sim5PedidoId); } catch (e) { console.error('Erro ao cancelar no 5SIM:', e.message); }
+    }
     return transact((db) => {
       const pedido = db.orders.find((o) => o.id === Number(cancelarMatch[1]) && o.userId === user.id);
-      if (!pedido) return sendJson(res, 404, { erro: 'Pedido não encontrado.' });
-      if (pedido.status !== 'aguardando') {
+      if (!pedido || pedido.status !== 'aguardando') {
         return sendJson(res, 400, { erro: 'Este pedido não pode mais ser cancelado.' });
-      }
-      const decorridoMs = Date.now() - new Date(pedido.criadoEm).getTime();
-      if (decorridoMs < PEDIDO_CANCEL_MIN_MS) {
-        const faltamSeg = Math.ceil((PEDIDO_CANCEL_MIN_MS - decorridoMs) / 1000);
-        return sendJson(res, 400, { erro: `Aguarde mais ${faltamSeg} segundos para poder cancelar este pedido.` });
       }
       const servico = db.services.find((s) => s.id === pedido.servicoId);
       const u = db.users.find((x) => x.id === user.id);
-      u.saldoCentavos += servico.precoCentavos; // estorna
+      const valorEstorno = pedido.precoPagoCentavos != null ? pedido.precoPagoCentavos : (servico ? servico.precoCentavos : 0);
+      u.saldoCentavos += valorEstorno; // estorna o valor real pago (nao o preco fixo do catalogo)
       pedido.status = 'cancelado';
       const slot = db.slots.find((s) => s.id === pedido.slotId);
       if (slot) { slot.status = 'livre'; slot.pedidoAtualId = null; }
@@ -559,7 +568,11 @@ async function api(req, res, pathname, method) {
 
     if (pathname === '/api/admin/pedidos' && method === 'GET') {
       const db = load();
-      return sendJson(res, 200, { pedidos: [...db.orders].sort((a, b) => new Date(b.criadoEm) - new Date(a.criadoEm)) });
+      const pedidosComUsuario = db.orders.map((o) => {
+        const u = db.users.find((x) => x.id === o.userId);
+        return Object.assign({}, o, { usuarioNome: u ? u.nome : null, usuarioEmail: u ? u.email : null });
+      });
+      return sendJson(res, 200, { pedidos: pedidosComUsuario.sort((a, b) => new Date(b.criadoEm) - new Date(a.criadoEm)) });
     }
 
     if (pathname === '/api/admin/configuracoes' && method === 'GET') {
