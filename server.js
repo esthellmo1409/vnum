@@ -446,8 +446,7 @@ async function api(req, res, pathname, method) {
     const { valorReais, nomePagador, cpfPagador } = await readBody(req);
     if (!valorReais || valorReais < 5) return sendJson(res, 400, { erro: 'Valor mínimo de recarga: R$ 5,00.' });
     try {
-      const db = load();
-      const txId = nextId(db, 'transactions');
+      const txId = transact((db) => nextId(db, 'transactions'));
       const pix = await mp.criarPagamentoPix({
         valorReais,
         descricao: `Recarga de créditos #${txId}`,
@@ -473,8 +472,7 @@ async function api(req, res, pathname, method) {
     const { valorReais } = await readBody(req);
     if (!valorReais || valorReais < 5) return sendJson(res, 400, { erro: 'Valor mínimo de recarga: R$ 5,00.' });
     try {
-      const db = load();
-      const txId = nextId(db, 'transactions');
+      const txId = transact((db) => nextId(db, 'transactions'));
       const pref = await mp.criarPreferenciaCheckout({
         valorReais,
         descricao: `Recarga de créditos #${txId}`,
@@ -526,6 +524,37 @@ async function api(req, res, pathname, method) {
     const db = load();
     const transacoes = db.transactions.filter((t) => t.userId === user.id).sort((a, b) => new Date(b.criadoEm) - new Date(a.criadoEm));
     return sendJson(res, 200, { transacoes });
+  }
+
+  // Verificacao ativa: consulta o Mercado Pago diretamente em vez de esperar o webhook passivo
+  // (util quando o webhook do painel do MP nao esta configurado ou falha)
+  const verificarPagMatch = pathname.match(/^\/api\/pagamentos\/(\d+)\/verificar$/);
+  if (verificarPagMatch && method === 'POST') {
+    if (!user) return requireLogin();
+    const txId = Number(verificarPagMatch[1]);
+    try {
+      const dbPeek = load();
+      const txPeek = dbPeek.transactions.find((t) => t.id === txId && t.userId === user.id);
+      if (!txPeek) return sendJson(res, 404, { erro: 'Transação não encontrada.' });
+      if (txPeek.status === 'aprovado') return sendJson(res, 200, { status: 'aprovado' });
+      if (!txPeek.mpPaymentId) return sendJson(res, 200, { status: txPeek.status });
+      const pagamento = await mp.consultarPagamento(txPeek.mpPaymentId);
+      const resultado = transact((db) => {
+        const tx = db.transactions.find((t) => t.id === txId && t.userId === user.id);
+        if (!tx) return { status: 'nao_encontrado' };
+        if (tx.status !== 'aprovado' && pagamento.status === 'approved') {
+          tx.status = 'aprovado';
+          const u = db.users.find((x) => x.id === tx.userId);
+          if (u) u.saldoCentavos += tx.valorCentavos;
+          return { status: 'aprovado', saldoCentavos: u ? u.saldoCentavos : undefined };
+        }
+        tx.status = pagamento.status;
+        return { status: pagamento.status };
+      });
+      return sendJson(res, 200, resultado);
+    } catch (e) {
+      return sendJson(res, 502, { erro: 'Falha ao verificar pagamento.', detalhe: String(e.message) });
+    }
   }
 
   // ----- ADMIN -----
@@ -630,11 +659,13 @@ async function api(req, res, pathname, method) {
       const pedidos5sim = db.orders.filter((o) => o.custoReaisCentavos != null);
       const detalhado = pedidos5sim.map((o) => {
         const vendaCentavos = o.precoPagoCentavos != null ? o.precoPagoCentavos : 0;
+        const usuario = db.users.find((u) => u.id === o.userId);
         return {
           id: o.id, servicoNome: o.servicoNome, numero: o.numero, pais: o.pais,
           custoDolar: o.custoDolar, custoReaisCentavos: o.custoReaisCentavos,
           vendaCentavos: vendaCentavos, lucroCentavos: vendaCentavos - o.custoReaisCentavos,
-          criadoEm: o.criadoEm
+          criadoEm: o.criadoEm,
+          usuarioNome: usuario ? usuario.nome : null, usuarioEmail: usuario ? usuario.email : null
         };
       });
       const totalLucroCentavos = detalhado.reduce((acc, p) => acc + p.lucroCentavos, 0);

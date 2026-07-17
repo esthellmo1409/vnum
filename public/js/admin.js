@@ -515,7 +515,9 @@ async function carregarFinanceiro() {
   const data = await res.json();
   const body = document.getElementById("financeiro-body");
   body.innerHTML = data.pedidos.map(function(p) {
-    return "<tr><td>#" + p.id + "</td><td>" + p.servicoNome + "</td><td>" + p.numero + "</td><td>$" + p.custoDolar.toFixed(4) + "</td><td>R$ " + (p.custoReaisCentavos/100).toFixed(2) + "</td><td>R$ " + (p.vendaCentavos/100).toFixed(2) + "</td><td>R$ " + (p.lucroCentavos/100).toFixed(2) + "</td></tr>";
+    const usuario = (p.usuarioNome || ("usuário " + "?")) + (p.usuarioEmail ? ("<br><small style=\"color:var(--muted)\">" + p.usuarioEmail + "</small>") : "");
+    const dataFormatada = p.criadoEm ? new Date(p.criadoEm).toLocaleString("pt-BR") : "—";
+    return "<tr><td>#" + p.id + "</td><td>" + usuario + "</td><td>" + p.servicoNome + "</td><td>" + p.numero + "</td><td>$" + p.custoDolar.toFixed(4) + "</td><td>R$ " + (p.custoReaisCentavos/100).toFixed(2) + "</td><td>R$ " + (p.vendaCentavos/100).toFixed(2) + "</td><td>R$ " + (p.lucroCentavos/100).toFixed(2) + "</td><td>" + dataFormatada + "</td></tr>";
   }).join("");
   document.getElementById("financeiro-total").textContent = "R$ " + (data.totalLucroCentavos/100).toFixed(2);
 }

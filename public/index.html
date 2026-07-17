@@ -17,7 +17,15 @@
       <a href="#como-funciona">Como funciona</a>
       <a href="#precos">Preços</a>
       <a href="#faq">Dúvidas</a>
+      <div style="position:relative; display:inline-block;">
+        <a href="#" onclick="event.preventDefault(); event.stopPropagation(); const m=document.getElementById('suporte-menu-landing'); m.style.display = m.style.display==='block' ? 'none' : 'block';">Suporte</a>
+        <div id="suporte-menu-landing" style="display:none; position:absolute; top:28px; right:0; background:#fff; border:1px solid var(--border, #e5e7eb); border-radius:10px; box-shadow:0 8px 24px -8px rgba(0,0,0,.2); padding:8px; min-width:220px; z-index:50;">
+          <a href="https://wa.me/17095063099" target="_blank" rel="noopener" style="display:flex; align-items:center; gap:8px; padding:8px 10px; border-radius:8px; color:#111; text-decoration:none; font-size:14px;">+1 709 506-3099</a>
+          <a href="https://wa.me/556781730376" target="_blank" rel="noopener" style="display:flex; align-items:center; gap:8px; padding:8px 10px; border-radius:8px; color:#111; text-decoration:none; font-size:14px;">+55 67 8173-0376</a>
+        </div>
+      </div>
     </nav>
+    <script>document.addEventListener('click', function(){ var m=document.getElementById('suporte-menu-landing'); if(m) m.style.display='none'; });</script>
     <div class="nav-actions">
       <a href="/login.html" class="btn btn-ghost btn-sm">Entrar</a>
       <a href="/cadastro.html" class="btn btn-primary btn-sm">Criar conta</a>

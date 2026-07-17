@@ -518,7 +518,20 @@ document.getElementById('link-recarga').addEventListener('click', (e) => {
 });
 document.getElementById('link-suporte').addEventListener('click', (e) => {
   e.preventDefault();
-  document.getElementById('link-ajuda-whatsapp').click();
+  e.stopPropagation();
+  const m = document.getElementById('suporte-menu-sidebar');
+  m.style.display = m.style.display === 'block' ? 'none' : 'block';
+});
+document.addEventListener('click', () => {
+  const m = document.getElementById('suporte-menu-sidebar');
+  if (m) m.style.display = 'none';
+});
+document.getElementById('btn-ajuda-whatsapp').addEventListener('click', (e) => {
+  e.stopPropagation();
+  document.getElementById('ajuda-menu').classList.toggle('show');
+});
+document.addEventListener('click', () => {
+  document.getElementById('ajuda-menu').classList.remove('show');
 });
 document.getElementById('btn-add-creditos').addEventListener('click', () => {
   document.getElementById('modal-recarga').classList.add('show');
@@ -564,7 +577,33 @@ document.getElementById('btn-pix').addEventListener('click', async () => {
   document.getElementById('area-pix').style.display = 'block';
   document.getElementById('pix-qr-img').src = 'data:image/png;base64,' + data.qrCodeBase64;
   document.getElementById('pix-copia-cola').textContent = data.qrCode;
-  document.getElementById('pix-copia-cola').onclick = () => navigator.clipboard.writeText(data.qrCode);
+  document.getElementById('pix-copia-cola').onclick = () => {
+    navigator.clipboard.writeText(data.qrCode);
+    const el = document.getElementById('pix-copia-cola');
+    const original = data.qrCode;
+    el.textContent = 'Copiado!';
+    setTimeout(() => { el.textContent = original; }, 1500);
+  };
+  if (window._pixPollTimer) clearInterval(window._pixPollTimer);
+  window._pixPollTimer = setInterval(async () => {
+    try {
+      const resVerif = await fetch('/api/pagamentos/' + data.transacaoId + '/verificar', { method: 'POST' });
+      const dataVerif = await resVerif.json();
+      if (dataVerif.status === 'aprovado') {
+        clearInterval(window._pixPollTimer);
+        document.getElementById('modal-recarga').classList.remove('show');
+        document.getElementById('area-pix').style.display = 'none';
+        if (dataVerif.saldoCentavos !== undefined) {
+          atualizarSaldoUI(dataVerif.saldoCentavos);
+        } else {
+          const resCarteira = await fetch('/api/carteira');
+          const dataCarteira = await resCarteira.json();
+          atualizarSaldoUI(dataCarteira.saldoCentavos);
+        }
+        alert('Pagamento confirmado! Saldo creditado.');
+      }
+    } catch (e) {}
+  }, 3000);
 });
 
 document.getElementById('btn-cartao').addEventListener('click', async () => {
