@@ -31,7 +31,10 @@ function pais5simPorIso(iso) {
 }
 const SERVICO_5SIM = {
   whatsapp: 'whatsapp', telegram: 'telegram', instagram: 'instagram', facebook: 'facebook',
-  tiktok: 'tiktok', discord: 'discord', google: 'google', twitter: 'twitter'
+  tiktok: 'tiktok', discord: 'discord', google: 'google', twitter: 'twitter',
+  kwai: 'kwai', tinder: 'tinder', uber: 'uber', picpay: 'picpay', olx: 'olx', shopee: 'shopee',
+  amazon: 'amazon', netflix: 'netflix', linkedin: 'linkedin', airbnb: 'airbnb', paypal: 'paypal',
+  'mercado livre': 'mercado'
 };
 function produto5simPorNome(nome) {
   const chave = (nome || '').toLowerCase();
@@ -225,7 +228,7 @@ async function api(req, res, pathname, method) {
     try {
       const precosConsulta = await sim5.buscarPreco(pais5simConsulta, produto5simConsulta);
       let menorCustoConsulta = Infinity;
-      if (precosConsulta) { for (const op in precosConsulta) { if (precosConsulta[op].cost < menorCustoConsulta) { menorCustoConsulta = precosConsulta[op].cost; } } }
+      if (precosConsulta) { for (const op in precosConsulta) { if (precosConsulta[op].count > 0 && precosConsulta[op].cost < menorCustoConsulta) { menorCustoConsulta = precosConsulta[op].cost; } } }
       if (menorCustoConsulta === Infinity) return sendJson(res, 200, { precoCentavos: null });
       const cambioResConsulta = await fetch('https://open.er-api.com/v6/latest/USD');
       const cambioDataConsulta = await cambioResConsulta.json();
@@ -238,6 +241,15 @@ async function api(req, res, pathname, method) {
       return sendJson(res, 200, { precoCentavos: null });
     }
   }
+  if (pathname === '/api/paises-5sim' && method === 'GET') {
+    try {
+      const isos = await sim5.listarPaisesDisponiveis();
+      return sendJson(res, 200, { isos });
+    } catch (e) {
+      return sendJson(res, 200, { isos: [] });
+    }
+  }
+
   if (pathname === '/api/catalogo' && method === 'GET') {
     const db = load();
     return sendJson(res, 200, { servicos: db.services.filter((s) => s.ativo) });
@@ -284,16 +296,24 @@ async function api(req, res, pathname, method) {
       if (pais5sim && produto5sim) {
         try {
           const precos = await sim5.buscarPreco(pais5sim, produto5sim);
+          let menorCusto = Infinity;
+          if (precos) { for (const op in precos) { if (precos[op].count > 0 && precos[op].cost < menorCusto) { menorCusto = precos[op].cost; } } }
           const operadoraEscolhida = precos ? 'any' : null;
-          if (operadoraEscolhida) { compra5sim = await sim5.comprarNumero(pais5sim, operadoraEscolhida, produto5sim); }
-          if (compra5sim) {
+          if (operadoraEscolhida && menorCusto !== Infinity) {
+            let taxaUsdBrl = 5.1;
             try {
               const cambioRes = await fetch("https://open.er-api.com/v6/latest/USD");
               const cambioData = await cambioRes.json();
-              const taxaUsdBrl = cambioData.rates && cambioData.rates.BRL ? cambioData.rates.BRL : 5.1;
+              if (cambioData.rates && cambioData.rates.BRL) taxaUsdBrl = cambioData.rates.BRL;
+            } catch (e2) {}
+            // Preco cobrado do cliente = mesma cotacao mostrada na tela (garante que ele nunca pague mais do que viu)
+            const custoCotadoReaisCentavos = Math.round(menorCusto * taxaUsdBrl * 100);
+            precoVendaCentavos = calcularPrecoVendaCentavos(custoCotadoReaisCentavos, dbCheck);
+            compra5sim = await sim5.comprarNumero(pais5sim, operadoraEscolhida, produto5sim);
+            // Custo real pago ao 5SIM (pode ser diferente do cotado, guardado so pra relatorio financeiro)
+            if (compra5sim) {
               custoReaisCentavos = Math.round(compra5sim.price * taxaUsdBrl * 100);
-            } catch (e2) { custoReaisCentavos = Math.round(compra5sim.price * 5.1 * 100); }
-            precoVendaCentavos = calcularPrecoVendaCentavos(custoReaisCentavos, dbCheck);
+            }
           }
         } catch (e) { compra5sim = null; }
       }
@@ -423,7 +443,7 @@ async function api(req, res, pathname, method) {
   // ----- PAGAMENTOS -----
   if (pathname === '/api/pagamentos/pix' && method === 'POST') {
     if (!user) return requireLogin();
-    const { valorReais } = await readBody(req);
+    const { valorReais, nomePagador, cpfPagador } = await readBody(req);
     if (!valorReais || valorReais < 5) return sendJson(res, 400, { erro: 'Valor mínimo de recarga: R$ 5,00.' });
     try {
       const db = load();
@@ -432,7 +452,9 @@ async function api(req, res, pathname, method) {
         valorReais,
         descricao: `Recarga de créditos #${txId}`,
         emailPagador: user.email,
-        orderId: txId
+        orderId: txId,
+        nomePagador,
+        cpfPagador
       });
       transact((db2) => {
         db2.transactions.push({
@@ -575,6 +597,22 @@ async function api(req, res, pathname, method) {
       return sendJson(res, 200, { pedidos: pedidosComUsuario.sort((a, b) => new Date(b.criadoEm) - new Date(a.criadoEm)) });
     }
 
+    if (pathname === '/api/admin/saldo-5sim' && method === 'GET') {
+      try {
+        const perfil = await sim5.buscarPerfil();
+        let taxaUsdBrl = 5.1;
+        try {
+          const cambioRes = await fetch('https://open.er-api.com/v6/latest/USD');
+          const cambioData = await cambioRes.json();
+          if (cambioData.rates && cambioData.rates.BRL) taxaUsdBrl = cambioData.rates.BRL;
+        } catch (e2) {}
+        const saldoCentavos = Math.round((perfil.balance || 0) * taxaUsdBrl * 100);
+        return sendJson(res, 200, { saldoDolar: perfil.balance, saldoCentavos, taxaUsdBrl });
+      } catch (e) {
+        return sendJson(res, 502, { erro: 'Falha ao consultar saldo do 5SIM.', detalhe: String(e.message) });
+      }
+    }
+
     if (pathname === '/api/admin/configuracoes' && method === 'GET') {
       const db = load();
       const config = db.configuracoes || { multiplicador5sim: 5, margemFixaCentavos: 100 };
@@ -604,7 +642,7 @@ async function api(req, res, pathname, method) {
     }
     if (pathname === '/api/admin/usuarios' && method === 'GET') {
       const db = load();
-      return sendJson(res, 200, { usuarios: db.users.map(publicUser) });
+      return sendJson(res, 200, { usuarios: db.users.map((u) => Object.assign({}, publicUser(u), { criadoEm: u.criadoEm })) });
     }
 
     // Credita saldo manualmente num usuário (uso do admin, ex: pagamento fora do site)

@@ -26,7 +26,7 @@ document.querySelectorAll('.side-link[data-tab]').forEach(link => {
     if (alvo === 'servicos') carregarServicos();
     if (alvo === 'pedidos') carregarPedidosAdmin();
     if (alvo === 'usuarios') carregarUsuarios();
-    if (alvo === 'financeiro') { carregarFinanceiro(); carregarConfiguracoes(); }
+    if (alvo === 'financeiro') { carregarFinanceiro(); carregarConfiguracoes(); carregarSaldo5sim(); }
   });
 });
 
@@ -287,6 +287,20 @@ async function carregarPedidosAdmin() {
   `).join('');
 }
 
+// ----- Saldo 5SIM -----
+async function carregarSaldo5sim() {
+  const el = document.getElementById('saldo-5sim-valor');
+  if (!el) return;
+  try {
+    const res = await fetch('/api/admin/saldo-5sim');
+    const data = await res.json();
+    if (!res.ok) { el.textContent = 'Indisponível'; return; }
+    el.textContent = 'R$ ' + centavosParaReais(data.saldoCentavos) + ' (US$ ' + Number(data.saldoDolar).toFixed(2) + ')';
+  } catch (e) {
+    el.textContent = 'Indisponível';
+  }
+}
+
 // ----- Usuários -----
 let usuarioParaRedefinir = null;
 let usuarioParaRetirar = null;
@@ -298,6 +312,7 @@ async function carregarUsuarios() {
       <td>${u.nome}</td>
       <td>${u.email}</td>
       <td style="font-family:var(--mono)">R$ ${centavosParaReais(u.saldoCentavos)}</td>
+      <td>${u.criadoEm ? new Date(u.criadoEm).toLocaleString('pt-BR') : '—'}</td>
       <td>
         <button class="btn btn-ghost btn-sm" onclick="abrirCreditar(${u.id}, '${u.nome.replace(/'/g, "\\'")}')">Creditar saldo</button>
         <button class="btn btn-ghost btn-sm" onclick="abrirRetirar(${u.id}, '${u.nome.replace(/'/g, "\\'")}')">Retirar saldo</button>

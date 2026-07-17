@@ -190,9 +190,23 @@ const CODIGOS_PAISES = [
   ['VA', 'Vaticano'], ['VE', 'Venezuela'], ['VN', 'Vietnã'], ['ZM', 'Zâmbia'],
   ['ZW', 'Zimbábue']
 ];
-const PAISES = CODIGOS_PAISES.map(([codigo, nome]) => ({
+let PAISES = CODIGOS_PAISES.map(([codigo, nome]) => ({
   codigo, nome, bandeira: bandeiraEmoji(codigo), disponivel: true
 }));
+async function carregarPaisesDisponiveis5sim() {
+  try {
+    const res = await fetch('/api/paises-5sim');
+    const data = await res.json();
+    if (data.isos && data.isos.length > 0) {
+      const isosSet = new Set(data.isos);
+      const comEstoque = PAISES.filter((p) => p.codigo === 'BR' || isosSet.has(p.codigo));
+      const semEstoque = PAISES.filter((p) => p.codigo !== 'BR' && !isosSet.has(p.codigo));
+      PAISES = comEstoque.concat(semEstoque);
+      if (typeof renderizarPaises === 'function') renderizarPaises();
+    }
+  } catch (e) {}
+}
+carregarPaisesDisponiveis5sim();
 
 let filtroPaisTexto = '';
 function filtrarPaises(valor) {
@@ -212,7 +226,10 @@ function renderizarPaises() {
 function selecionarPais(codigo) {
   paisSelecionado = codigo;
   renderizarPaises();
-  carregarCatalogo();
+  carregarCatalogo().then(function() {
+    const lista = document.getElementById('services-list');
+    if (lista) lista.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  });
 }
 
 function mostrarPainelPais() {
@@ -230,34 +247,55 @@ function selecionarServico(id) {
 
 let servicosCarregados = [];
 
+let _catalogoRequestId = 0;
 async function carregarCatalogo() {
+  const meuRequestId = ++_catalogoRequestId;
   const res = await fetch('/api/catalogo');
   const data = await res.json();
+  if (meuRequestId !== _catalogoRequestId) return; // uma requisicao mais nova ja foi disparada, descarta essa
   servicosCarregados = data.servicos;
   precoPorServicoId = {};
   data.servicos.forEach(s => { precoPorServicoId[s.id] = s.precoCentavos; });
   const lista = document.getElementById('services-list');
   let servicosParaMostrar = data.servicos.filter(s => s.nome !== 'WhatsApp Internacional');
   if (paisSelecionado && paisSelecionado !== 'BR') {
+    lista.innerHTML = '<div style="padding:24px 12px; text-align:center; color:var(--muted);"><span class="dot"></span> Carregando serviços disponíveis...</div>';
     servicosParaMostrar = data.servicos.filter(s => !s.nome.toLowerCase().includes(' br '));
+    function buscarPrecoComRetry(url, tentativas) {
+      return fetch(url)
+        .then(function(r) { return r.json(); })
+        .then(function(pd) { return pd.precoCentavos; })
+        .catch(function() {
+          if (tentativas > 0) return buscarPrecoComRetry(url, tentativas - 1);
+          return null;
+        });
+    }
     const precosPromises = servicosParaMostrar.map(function(s) {
-      return fetch('/api/precos/internacional?pais=' + paisSelecionado + '&servico=' + encodeURIComponent(s.nome)).then(function(r) { return r.json(); }).then(function(pd) { return pd.precoCentavos; }).catch(function() { return null; });
+      const url = '/api/precos/internacional?pais=' + paisSelecionado + '&servico=' + encodeURIComponent(s.nome);
+      return buscarPrecoComRetry(url, 2);
     });
     const precosLista = await Promise.all(precosPromises);
-    servicosParaMostrar = servicosParaMostrar.map(function(s, i) {
-      return precosLista[i] != null ? Object.assign({}, s, { precoCentavos: precosLista[i] }) : s;
-    });
+    if (meuRequestId !== _catalogoRequestId) return; // descarta se outro pais foi selecionado enquanto isso
+    servicosParaMostrar = servicosParaMostrar
+      .map(function(s, i) {
+        return precosLista[i] != null ? Object.assign({}, s, { precoCentavos: precosLista[i] }) : null;
+      })
+      .filter(function(s) { return s !== null; });
   }
-  lista.innerHTML = servicosParaMostrar.map(s => {
-    const { icone, bg, txt } = iconeDoServico(s.nome);
-    return `
-    <div class="service-row" onclick="comprarNumero(${s.id})">
-      <span class="service-row-icon" style="background:${bg}; color:${txt || '#fff'};"><i class="ti ${icone}" aria-hidden="true"></i></span>
-      <span class="service-row-nome">${s.nome}</span>
-      <span class="service-row-preco">R$ ${centavosParaReais(s.precoCentavos)}</span>
-    </div>
-  `;
-  }).join('');
+  if (servicosParaMostrar.length === 0 && paisSelecionado && paisSelecionado !== 'BR') {
+    lista.innerHTML = '<div style="padding:24px 12px; text-align:center; color:var(--muted);">Nenhum serviço disponível pra esse país no momento. Tente outro país ou volte mais tarde.</div>';
+  } else {
+    lista.innerHTML = servicosParaMostrar.map(s => {
+      const { icone, bg, txt } = iconeDoServico(s.nome);
+      return `
+      <div class="service-row" onclick="comprarNumero(${s.id})">
+        <span class="service-row-icon" style="background:${bg}; color:${txt || '#fff'};"><i class="ti ${icone}" aria-hidden="true"></i></span>
+        <span class="service-row-nome">${s.nome}</span>
+        <span class="service-row-preco">R$ ${centavosParaReais(s.precoCentavos)}</span>
+      </div>
+    `;
+    }).join('');
+  }
   preencherPrecosAtalho();
 }
 
@@ -379,7 +417,7 @@ async function carregarHistorico() {
       <td><span class="tag ${p.status}">${p.status}</span></td>
       <td style="font-family:var(--mono)">${p.codigo || '—'}</td>
       <td>${p.servicoNome}</td>
-      <td style="font-family:var(--mono)">${precoPorServicoId[p.servicoId] !== undefined ? 'R$ ' + centavosParaReais(precoPorServicoId[p.servicoId]) : '—'}</td>
+      <td style="font-family:var(--mono)">${p.precoPagoCentavos !== undefined && p.precoPagoCentavos !== null ? 'R$ ' + centavosParaReais(p.precoPagoCentavos) : '—'}</td>
       <td>${new Date(p.criadoEm).toLocaleString('pt-BR')}</td>
       <td>${p.status === 'aguardando' ? `<button class="btn btn-ghost btn-sm" onclick='abrirModalPedido(${JSON.stringify(p)})'>Ver</button>` : ''}</td>
     </tr>
@@ -480,13 +518,31 @@ document.querySelectorAll('[data-close]').forEach(el => {
 });
 
 // ----- Recarga -----
+const campoCpfRecarga = document.getElementById('cpf-recarga');
+if (campoCpfRecarga) {
+  campoCpfRecarga.addEventListener('input', () => {
+    let v = campoCpfRecarga.value.replace(/\D/g, '').slice(0, 11);
+    v = v.replace(/(\d{3})(\d)/, '$1.$2').replace(/(\d{3})(\d)/, '$1.$2').replace(/(\d{3})(\d{1,2})$/, '$1-$2');
+    campoCpfRecarga.value = v;
+  });
+}
 document.getElementById('btn-pix').addEventListener('click', async () => {
   const valor = Number(document.getElementById('valor-recarga').value);
+  const nomeRecarga = document.getElementById('nome-recarga').value.trim();
+  const cpfRecarga = document.getElementById('cpf-recarga').value.replace(/\D/g, '');
   const msg = document.getElementById('msg-recarga');
   msg.className = 'form-msg'; msg.textContent = '';
+  if (!nomeRecarga || nomeRecarga.split(' ').filter(Boolean).length < 2) {
+    msg.className = 'form-msg erro'; msg.textContent = 'Informe seu nome completo.';
+    return;
+  }
+  if (cpfRecarga.length !== 11) {
+    msg.className = 'form-msg erro'; msg.textContent = 'Informe um CPF válido (11 dígitos).';
+    return;
+  }
   const res = await fetch('/api/pagamentos/pix', {
     method: 'POST', headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ valorReais: valor })
+    body: JSON.stringify({ valorReais: valor, nomePagador: nomeRecarga, cpfPagador: cpfRecarga })
   });
   const data = await res.json();
   if (!res.ok) {
