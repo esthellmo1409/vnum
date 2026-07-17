@@ -261,20 +261,32 @@ async function carregarCatalogo() {
   if (paisSelecionado && paisSelecionado !== 'BR') {
     lista.innerHTML = '<div style="padding:24px 12px; text-align:center; color:var(--muted);"><span class="dot"></span> Carregando serviços disponíveis...</div>';
     servicosParaMostrar = data.servicos.filter(s => !s.nome.toLowerCase().includes(' br '));
+    function esperar(ms) { return new Promise(function(resolve) { setTimeout(resolve, ms); }); }
     function buscarPrecoComRetry(url, tentativas) {
       return fetch(url)
         .then(function(r) { return r.json(); })
         .then(function(pd) { return pd.precoCentavos; })
         .catch(function() {
-          if (tentativas > 0) return buscarPrecoComRetry(url, tentativas - 1);
+          if (tentativas > 0) {
+            return esperar(400).then(function() { return buscarPrecoComRetry(url, tentativas - 1); });
+          }
           return null;
         });
     }
-    const precosPromises = servicosParaMostrar.map(function(s) {
-      const url = '/api/precos/internacional?pais=' + paisSelecionado + '&servico=' + encodeURIComponent(s.nome);
-      return buscarPrecoComRetry(url, 2);
-    });
-    const precosLista = await Promise.all(precosPromises);
+    async function buscarEmLotes(servicos, tamanhoLote) {
+      const resultado = [];
+      for (let i = 0; i < servicos.length; i += tamanhoLote) {
+        const lote = servicos.slice(i, i + tamanhoLote);
+        const lotePromises = lote.map(function(s) {
+          const url = '/api/precos/internacional?pais=' + paisSelecionado + '&servico=' + encodeURIComponent(s.nome);
+          return buscarPrecoComRetry(url, 2);
+        });
+        const loteResultado = await Promise.all(lotePromises);
+        resultado.push(...loteResultado);
+      }
+      return resultado;
+    }
+    const precosLista = await buscarEmLotes(servicosParaMostrar, 5);
     if (meuRequestId !== _catalogoRequestId) return; // descarta se outro pais foi selecionado enquanto isso
     servicosParaMostrar = servicosParaMostrar
       .map(function(s, i) {
@@ -283,7 +295,7 @@ async function carregarCatalogo() {
       .filter(function(s) { return s !== null; });
   }
   if (servicosParaMostrar.length === 0 && paisSelecionado && paisSelecionado !== 'BR') {
-    lista.innerHTML = '<div style="padding:24px 12px; text-align:center; color:var(--muted);">Nenhum serviço disponível pra esse país no momento. Tente outro país ou volte mais tarde.</div>';
+    lista.innerHTML = '<div style="padding:24px 12px; text-align:center; color:var(--muted);">O estoque desse país muda com frequência. Nada disponível agora — tente atualizar em alguns segundos.<br><button class="btn btn-ghost btn-sm" style="margin-top:10px;" onclick="carregarCatalogo()">Atualizar</button></div>';
   } else {
     lista.innerHTML = servicosParaMostrar.map(s => {
       const { icone, bg, txt } = iconeDoServico(s.nome);
