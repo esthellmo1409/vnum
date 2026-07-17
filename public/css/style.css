@@ -359,3 +359,5 @@ td { padding: 12px; border-bottom: 1px solid var(--border); color: var(--text); 
 .service-row-icon { width: 28px; height: 28px; min-width: 28px; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 15px; color: #fff; }
 .service-row-nome { flex: 1; color: #2851d8; font-weight: 600; font-size: 14px; }
 .service-row-preco { color: #2851d8; font-weight: 600; font-size: 14px; white-space: nowrap; }
+
+#services-grid .price { display: none; }
