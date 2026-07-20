@@ -341,7 +341,7 @@ async function api(req, res, pathname, method) {
             } catch (e2) {}
             // Preco cobrado do cliente = mesma cotacao mostrada na tela (garante que ele nunca pague mais do que viu)
             const custoCotadoReaisCentavos = Math.round(menorCusto * taxaUsdBrl * 100);
-            precoVendaCentavos = calcularPrecoVendaCentavos(custoCotadoReaisCentavos, dbCheck);
+            precoVendaCentavos = paisAlvo === 'BR' ? (custoCotadoReaisCentavos + 200) : calcularPrecoVendaCentavos(custoCotadoReaisCentavos, dbCheck);
             compra5sim = await sim5.comprarNumero(pais5sim, operadoraEscolhida, produto5sim);
             // Custo real pago ao 5SIM (pode ser diferente do cotado, guardado so pra relatorio financeiro)
             if (compra5sim) {
@@ -365,7 +365,7 @@ async function api(req, res, pathname, method) {
               if (cambioDataSmsman.rates && cambioDataSmsman.rates.BRL) taxaUsdBrlSmsman = cambioDataSmsman.rates.BRL;
             } catch (e3) {}
             const custoCotadoReaisCentavosSmsman = Math.round(precoSmsman.custo * taxaUsdBrlSmsman * 100);
-            precoVendaCentavos = calcularPrecoVendaCentavos(custoCotadoReaisCentavosSmsman, dbCheck);
+            precoVendaCentavos = paisAlvo === 'BR' ? (custoCotadoReaisCentavosSmsman + 200) : calcularPrecoVendaCentavos(custoCotadoReaisCentavosSmsman, dbCheck);
             const compra = await smsman.comprarNumero(paisSmsmanId, produtoSmsmanId);
             if (compra) {
               compraSmsman = compra;
