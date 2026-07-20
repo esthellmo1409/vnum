@@ -443,33 +443,12 @@ function buscarServicoPorNome(pedacos) {
   });
 }
 
-document.getElementById('btn-atalho-whatsapp').addEventListener('click', (e) => {
-  e.stopPropagation();
-  document.getElementById('atalho-menu').classList.toggle('show');
-});
-document.addEventListener('click', () => {
-  document.getElementById('atalho-menu').classList.remove('show');
-});
-
-document.querySelectorAll('.atalho-item').forEach(item => {
-  item.addEventListener('click', () => {
-    document.getElementById('atalho-menu').classList.remove('show');
-    const tipo = item.dataset.tipo;
-    paisSelecionado = 'BR';
-    renderizarPaises();
-
-    if (tipo === 'aleatorio') {
-      const servico = buscarServicoPorNome(['aleat']) || buscarServicoPorNome(['whatsapp']);
-      if (!servico) return alert('Cadastre um serviço "WhatsApp BR DDD Aleatório" no admin pra usar esse atalho.');
-      comprarNumero(servico.id);
-    } else if (tipo === 'promocional') {
-      const servico = buscarServicoPorNome(['promocional']);
-      if (!servico) return alert('Cadastre um serviço "WhatsApp BR Promocional" no admin pra usar esse atalho.');
-      comprarNumero(servico.id);
-    } else if (tipo === 'ddd') {
-      abrirModalDDD();
-    }
-  });
+document.getElementById('btn-atalho-whatsapp').addEventListener('click', () => {
+  paisSelecionado = 'BR';
+  renderizarPaises();
+  const servico = buscarServicoPorNome(['whatsapp']);
+  if (!servico) return alert('Cadastre um serviço "WhatsApp" no admin pra usar esse atalho.');
+  comprarNumero(servico.id);
 });
 
 let servicoDDDSelecionado = null;
