@@ -9,6 +9,7 @@ const { transact, load, nextId } = require('./lib/store');
 const { hashPassword, verifyPassword, newToken } = require('./lib/auth');
 const mp = require('./lib/mercadopago');
 const sim5 = require('./lib/5sim');
+const smsman = require('./lib/smsman');
 
 function calcularPrecoVendaCentavos(custoReaisCentavos, db) {
   const config = (db && db.configuracoes) || {};
@@ -39,6 +40,36 @@ const SERVICO_5SIM = {
 function produto5simPorNome(nome) {
   const chave = (nome || '').toLowerCase();
   for (const k in SERVICO_5SIM) { if (chave.includes(k)) return SERVICO_5SIM[k]; }
+  return null;
+}
+
+const PAIS_SMSMAN_MANUAL = { BR: 150, PT: 263, AR: 119, PH: 8, US: 5, MX: 18 };
+let smsmanPaisesCache = null;
+async function carregarSmsmanPaisesCache() {
+  if (!smsmanPaisesCache) {
+    try { smsmanPaisesCache = await smsman.listarPaises(); } catch (e) { smsmanPaisesCache = {}; }
+  }
+  return smsmanPaisesCache;
+}
+async function paisSmsmanPorIso(iso) {
+  if (PAIS_SMSMAN_MANUAL[iso]) return PAIS_SMSMAN_MANUAL[iso];
+  const cache = await carregarSmsmanPaisesCache();
+  let nomeIngles = null;
+  try { nomeIngles = new Intl.DisplayNames(['en'], { type: 'region' }).of(iso); } catch (e) {}
+  if (!nomeIngles) return null;
+  const alvo = nomeIngles.toLowerCase().replace(/[^a-z]/g, '');
+  for (const id in cache) {
+    const titulo = (cache[id].title || '').toLowerCase().replace(/[^a-z]/g, '');
+    if (titulo === alvo || titulo.includes(alvo) || alvo.includes(titulo)) return Number(id);
+  }
+  return null;
+}
+const SERVICO_SMSMAN = { whatsapp: 6, telegram: 3, instagram: 5, facebook: 124, twitter: 125, uber: 126, olx: 129 };
+function produtoSmsmanPorNome(nome) {
+  const chave5sim = produto5simPorNome(nome);
+  if (chave5sim && SERVICO_SMSMAN[chave5sim]) return SERVICO_SMSMAN[chave5sim];
+  const chave = (nome || '').toLowerCase();
+  for (const k in SERVICO_SMSMAN) { if (chave.includes(k)) return SERVICO_SMSMAN[k]; }
   return null;
 }
 
@@ -288,6 +319,8 @@ async function api(req, res, pathname, method) {
     const servicoCheck = dbCheck.services.find((s) => s.id === servicoId && s.ativo);
     const temSlotFisico = servicoCheck ? dbCheck.slots.some((s) => s.status === 'livre' && (s.pais || 'BR') === paisAlvo && (!ddd || extrairDDD(s.numero) === ddd)) : true;
     let compra5sim = null;
+    let compraSmsman = null;
+    let custoDolarSmsman = null;
     let custoReaisCentavos = null;
     let precoVendaCentavos = null;
     if (servicoCheck && !temSlotFisico) {
@@ -318,16 +351,41 @@ async function api(req, res, pathname, method) {
         } catch (e) { compra5sim = null; }
       }
     }
+    if (servicoCheck && !temSlotFisico && !compra5sim) {
+      const paisSmsmanId = await paisSmsmanPorIso(paisAlvo);
+      const produtoSmsmanId = produtoSmsmanPorNome(servicoCheck.nome);
+      if (paisSmsmanId && produtoSmsmanId) {
+        try {
+          const precoSmsman = await smsman.buscarPreco(paisSmsmanId, produtoSmsmanId);
+          if (precoSmsman && precoSmsman.estoque > 0) {
+            let taxaUsdBrlSmsman = 5.1;
+            try {
+              const cambioResSmsman = await fetch("https://open.er-api.com/v6/latest/USD");
+              const cambioDataSmsman = await cambioResSmsman.json();
+              if (cambioDataSmsman.rates && cambioDataSmsman.rates.BRL) taxaUsdBrlSmsman = cambioDataSmsman.rates.BRL;
+            } catch (e3) {}
+            const custoCotadoReaisCentavosSmsman = Math.round(precoSmsman.custo * taxaUsdBrlSmsman * 100);
+            precoVendaCentavos = calcularPrecoVendaCentavos(custoCotadoReaisCentavosSmsman, dbCheck);
+            const compra = await smsman.comprarNumero(paisSmsmanId, produtoSmsmanId);
+            if (compra) {
+              compraSmsman = compra;
+              custoDolarSmsman = precoSmsman.custo;
+              custoReaisCentavos = Math.round(precoSmsman.custo * taxaUsdBrlSmsman * 100);
+            }
+          }
+        } catch (e4) { compraSmsman = null; }
+      }
+    }
     return transact((db) => {
       const servico = db.services.find((s) => s.id === servicoId && s.ativo);
       if (!servico) return sendJson(res, 404, { erro: 'Serviço não encontrado.' });
       const u = db.users.find((x) => x.id === user.id);
-      const precoCobrado = compra5sim ? precoVendaCentavos : servico.precoCentavos;
+      const precoCobrado = (compra5sim || compraSmsman) ? precoVendaCentavos : servico.precoCentavos;
       if (u.saldoCentavos < precoCobrado) {
         return sendJson(res, 402, { erro: 'Saldo insuficiente. Adicione créditos.' });
       }
       const slot = db.slots.find((s) => s.status === 'livre' && (s.pais || 'BR') === paisAlvo && (!ddd || extrairDDD(s.numero) === ddd));
-      if (!slot && !compra5sim) {
+      if (!slot && !compra5sim && !compraSmsman) {
         return sendJson(res, 503, { erro: ddd ? `Nenhum número disponível agora para o DDD ${ddd}.` : `Nenhum número disponível agora para ${paisAlvo === 'BR' ? 'o Brasil' : paisAlvo}. Tente novamente em instantes.` });
       }
       u.saldoCentavos -= precoCobrado;
@@ -338,12 +396,13 @@ async function api(req, res, pathname, method) {
         servicoId: servico.id,
         servicoNome: servico.nome,
         slotId: slot ? slot.id : null,
-        numero: slot ? slot.numero : compra5sim.phone,
+        numero: slot ? slot.numero : (compra5sim ? compra5sim.phone : compraSmsman.numero),
         pais: paisAlvo,
-        origem: slot ? 'chip' : '5sim',
-        sim5PedidoId: slot ? null : compra5sim.id,
+        origem: slot ? 'chip' : (compra5sim ? '5sim' : 'smsman'),
+        sim5PedidoId: slot || !compra5sim ? null : compra5sim.id,
+        smsmanPedidoId: slot || !compraSmsman ? null : compraSmsman.requestId,
         custoReaisCentavos: slot ? null : custoReaisCentavos,
-        custoDolar: slot ? null : compra5sim.price,
+        custoDolar: slot ? null : (compra5sim ? compra5sim.price : custoDolarSmsman),
         precoPagoCentavos: precoCobrado,
         status: 'aguardando',
         mensagemRecebida: null,
@@ -400,6 +459,9 @@ async function api(req, res, pathname, method) {
     }
     if (pedidoPeek.origem === '5sim' && pedidoPeek.sim5PedidoId) {
       try { await sim5.cancelarPedido(pedidoPeek.sim5PedidoId); } catch (e) { console.error('Erro ao cancelar no 5SIM:', e.message); }
+    }
+    if (pedidoPeek.origem === 'smsman' && pedidoPeek.smsmanPedidoId) {
+      try { await smsman.cancelarNumero(pedidoPeek.smsmanPedidoId); } catch (e) { console.error('Erro ao cancelar no SMS-Man:', e.message); }
     }
     return transact((db) => {
       const pedido = db.orders.find((o) => o.id === Number(cancelarMatch[1]) && o.userId === user.id);
@@ -783,6 +845,28 @@ setInterval(async function verificarSms5sim() {
       } catch (e) {}
     }
   } catch (e) { console.error('Erro no poller 5sim:', e.message); }
+}, 15000);
+
+setInterval(async function verificarSmsSmsman() {
+  try {
+    const db = load();
+    const pendentes = db.orders.filter(function(o) { return o.status === 'aguardando' && o.smsmanPedidoId; });
+    for (const order of pendentes) {
+      try {
+        const resultado = await smsman.consultarSms(order.smsmanPedidoId);
+        if (!resultado.aguardando && resultado.codigo) {
+          transact(function(db2) {
+            const o2 = db2.orders.find(function(x) { return x.id === order.id; });
+            if (o2 && o2.status === 'aguardando') {
+              o2.status = 'recebido';
+              o2.mensagemRecebida = resultado.codigo;
+              o2.codigo = resultado.codigo;
+            }
+          });
+        }
+      } catch (e) {}
+    }
+  } catch (e) { console.error('Erro no poller SMS-Man:', e.message); }
 }, 15000);
 
 server.listen(PORT, () => {
