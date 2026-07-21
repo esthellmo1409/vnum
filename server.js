@@ -214,7 +214,6 @@ async function api(req, res, pathname, method) {
         isAdmin: false,
         criadoEm: new Date().toISOString()
       };
-      user.codigoAfiliado = 'AFF' + user.id;
       if (ref) {
         const afiliadoRef = db.users.find((u) => u.codigoAfiliado === ref);
         if (afiliadoRef) user.indicadoPor = afiliadoRef.id;
