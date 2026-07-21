@@ -130,6 +130,7 @@ document.getElementById('menu-sair').addEventListener('click', async () => {
 
 let precoPorServicoId = {};
 let paisSelecionado = 'BR';
+let paisEscolhidoPeloUsuario = false;
 
 // Gera o emoji da bandeira a partir do código ISO de 2 letras (ex: "BR" -> 🇧🇷)
 function bandeiraEmoji(iso2) {
@@ -225,6 +226,7 @@ function renderizarPaises() {
 }
 function selecionarPais(codigo) {
   paisSelecionado = codigo;
+  paisEscolhidoPeloUsuario = true;
   renderizarPaises();
   carregarCatalogo().then(function() {
     const lista = document.getElementById('services-list');
@@ -257,10 +259,14 @@ async function carregarCatalogo() {
   precoPorServicoId = {};
   data.servicos.forEach(s => { precoPorServicoId[s.id] = s.precoCentavos; });
   const lista = document.getElementById('services-list');
+  if (!paisEscolhidoPeloUsuario) {
+    lista.innerHTML = '<div style="padding:24px 12px; text-align:center; color:var(--muted);">Selecione um país abaixo para ver os serviços disponíveis.</div>';
+    return;
+  }
   let servicosParaMostrar = data.servicos.filter(s => s.nome !== 'WhatsApp Internacional');
   if (paisSelecionado) {
     lista.innerHTML = '<div style="padding:24px 12px; text-align:center; color:var(--muted);"><span class="dot"></span> Carregando serviços disponíveis...</div>';
-    servicosParaMostrar = data.servicos.filter(s => !s.nome.toLowerCase().includes(' br '));
+    servicosParaMostrar = data.servicos.filter(s => !s.nome.toLowerCase().includes(' br ') && s.nome !== 'WhatsApp Internacional');
     function esperar(ms) { return new Promise(function(resolve) { setTimeout(resolve, ms); }); }
     function buscarPrecoComRetry(url, tentativas) {
       return fetch(url)
