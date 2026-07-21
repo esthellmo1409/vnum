@@ -749,7 +749,7 @@ async function api(req, res, pathname, method) {
     }
     if (pathname === '/api/admin/financeiro' && method === 'GET') {
       const db = load();
-      const pedidos5sim = db.orders.filter((o) => o.custoReaisCentavos != null);
+      const pedidos5sim = db.orders.filter((o) => o.custoReaisCentavos != null && o.status !== 'cancelado');
       const detalhado = pedidos5sim.map((o) => {
         const vendaCentavos = o.precoPagoCentavos != null ? o.precoPagoCentavos : 0;
         const usuario = db.users.find((u) => u.id === o.userId);
