@@ -316,9 +316,11 @@ async function carregarSaldoSmsman() {
 }
 
 // ----- Afiliados -----
+let afiliadosCache = [];
 async function carregarAfiliados() {
   const res = await fetch('/api/admin/afiliados');
   const data = await res.json();
+  afiliadosCache = data.afiliados;
   document.getElementById('afiliados-body').innerHTML = data.afiliados.map(a => `
     <tr>
       <td>${a.nome}</td>
@@ -328,10 +330,25 @@ async function carregarAfiliados() {
       <td>${a.totalVendasComComissao}</td>
       <td style="font-family:var(--mono)">R$ ${centavosParaReais(a.saldoComissaoCentavos)}</td>
       <td>
+        <button class="btn btn-ghost btn-sm" onclick="verVendasAfiliado(${a.id})">Ver vendas</button>
         <button class="btn btn-ghost btn-sm" onclick="marcarComissaoPaga(${a.id})">Marcar como pago</button>
       </td>
     </tr>
   `).join('');
+}
+function verVendasAfiliado(id) {
+  const a = afiliadosCache.find(x => x.id === id);
+  if (!a) return;
+  document.getElementById('vendas-afiliado-titulo').textContent = 'Vendas de ' + a.nome;
+  document.getElementById('vendas-afiliado-body').innerHTML = (a.vendas || []).map(v => `
+    <tr>
+      <td>${v.servico}</td>
+      <td>R$ ${centavosParaReais(v.valorVendaCentavos)}</td>
+      <td>R$ ${centavosParaReais(v.comissaoCentavos)}</td>
+      <td>${new Date(v.criadoEm).toLocaleString('pt-BR')}</td>
+    </tr>
+  `).join('') || '<tr><td colspan="4" style="text-align:center; color:var(--muted);">Nenhuma venda ainda</td></tr>';
+  document.getElementById('modal-vendas-afiliado').classList.add('show');
 }
 async function marcarComissaoPaga(id) {
   if (!confirm('Confirma que já pagou a comissão desse afiliado? O saldo dele será zerado.')) return;

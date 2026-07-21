@@ -520,6 +520,17 @@ document.getElementById('link-afiliado').addEventListener('click', async (e) => 
     document.getElementById('afiliado-indicados').textContent = data.totalIndicados;
     document.getElementById('afiliado-vendas').textContent = data.totalVendasComComissao;
     document.getElementById('afiliado-saldo').textContent = 'R$ ' + centavosParaReais(data.saldoComissaoCentavos);
+    const corpo = document.getElementById('afiliado-vendas-body');
+    if (corpo) {
+      corpo.innerHTML = (data.vendas || []).map(v => `
+        <tr>
+          <td>${v.servico}</td>
+          <td>R$ ${centavosParaReais(v.valorVendaCentavos)}</td>
+          <td>R$ ${centavosParaReais(v.comissaoCentavos)}</td>
+          <td>${new Date(v.criadoEm).toLocaleDateString('pt-BR')}</td>
+        </tr>
+      `).join('') || '<tr><td colspan="4" style="text-align:center; color:var(--muted);">Nenhuma venda ainda</td></tr>';
+    }
   } catch (err) {}
 });
 document.getElementById('btn-copiar-link-afiliado').addEventListener('click', () => {

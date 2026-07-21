@@ -342,7 +342,11 @@ async function api(req, res, pathname, method) {
       codigoAfiliado: u.codigoAfiliado,
       saldoComissaoCentavos: u.saldoComissaoCentavos || 0,
       totalIndicados: indicados.length,
-      totalVendasComComissao: vendasComComissao.length
+      totalVendasComComissao: vendasComComissao.length,
+      vendas: vendasComComissao.map((o) => ({
+        servico: o.servicoNome, valorVendaCentavos: o.precoPagoCentavos,
+        comissaoCentavos: o.comissaoCentavos, criadoEm: o.criadoEm
+      })).sort((a, b) => new Date(b.criadoEm) - new Date(a.criadoEm))
     });
   }
 
@@ -837,11 +841,15 @@ async function api(req, res, pathname, method) {
       const db = load();
       const lista = db.users.map((u) => {
         const indicados = db.users.filter((x) => x.indicadoPor === u.id).length;
-        const vendas = db.orders.filter((o) => o.comissaoAfiliadoId === u.id).length;
+        const vendasArr = db.orders.filter((o) => o.comissaoAfiliadoId === u.id);
         return {
           id: u.id, nome: u.nome, email: u.email, codigoAfiliado: u.codigoAfiliado,
-          totalIndicados: indicados, totalVendasComComissao: vendas,
-          saldoComissaoCentavos: u.saldoComissaoCentavos || 0
+          totalIndicados: indicados, totalVendasComComissao: vendasArr.length,
+          saldoComissaoCentavos: u.saldoComissaoCentavos || 0,
+          vendas: vendasArr.map((o) => ({
+            servico: o.servicoNome, valorVendaCentavos: o.precoPagoCentavos,
+            comissaoCentavos: o.comissaoCentavos, criadoEm: o.criadoEm
+          })).sort((a, b) => new Date(b.criadoEm) - new Date(a.criadoEm))
         };
       }).filter((a) => a.totalIndicados > 0 || a.saldoComissaoCentavos > 0);
       return sendJson(res, 200, { afiliados: lista });
