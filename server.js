@@ -330,6 +330,22 @@ async function api(req, res, pathname, method) {
     return sendJson(res, 200, { saldoCentavos: user.saldoCentavos });
   }
 
+  if (pathname === '/api/afiliado' && method === 'GET') {
+    if (!user) return requireLogin();
+    const db = load();
+    const u = db.users.find((x) => x.id === user.id);
+    if (!u.codigoAfiliado) return sendJson(res, 200, { ehAfiliado: false });
+    const indicados = db.users.filter((x) => x.indicadoPor === u.id);
+    const vendasComComissao = db.orders.filter((o) => o.comissaoAfiliadoId === u.id);
+    return sendJson(res, 200, {
+      ehAfiliado: true,
+      codigoAfiliado: u.codigoAfiliado,
+      saldoComissaoCentavos: u.saldoComissaoCentavos || 0,
+      totalIndicados: indicados.length,
+      totalVendasComComissao: vendasComComissao.length
+    });
+  }
+
   // ----- DDDs disponíveis (para a compra premium com escolha de DDD) -----
   if (pathname === '/api/ddds-disponiveis' && method === 'GET') {
     if (!user) return requireLogin();
