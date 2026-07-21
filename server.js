@@ -252,7 +252,40 @@ async function api(req, res, pathname, method) {
     const urlObj2 = new URL(req.url, 'http://' + req.headers.host);
     const paisConsulta = urlObj2.searchParams.get('pais') || 'BR';
     const servicoNomeConsulta = urlObj2.searchParams.get('servico') || 'whatsapp';
-    if (paisConsulta === 'BR') return sendJson(res, 200, { precoCentavos: null });
+    async function taxaCambioConsulta() {
+      let t = 5.1;
+      try {
+        const r = await fetch('https://open.er-api.com/v6/latest/USD');
+        const d = await r.json();
+        if (d.rates && d.rates.BRL) t = d.rates.BRL;
+      } catch (e) {}
+      return t;
+    }
+    if (paisConsulta === 'BR') {
+      try {
+        const pais5simBR = pais5simPorIso('BR');
+        const produto5simBR = produto5simPorNome(servicoNomeConsulta);
+        let menorCustoBR = Infinity;
+        if (pais5simBR && produto5simBR) {
+          const precosBR = await sim5.buscarPreco(pais5simBR, produto5simBR);
+          if (precosBR) { for (const op in precosBR) { if (precosBR[op].count > 0 && precosBR[op].cost < menorCustoBR) { menorCustoBR = precosBR[op].cost; } } }
+        }
+        if (menorCustoBR === Infinity) {
+          const paisSmsmanBR = await paisSmsmanPorIso('BR');
+          const produtoSmsmanBR = produtoSmsmanPorNome(servicoNomeConsulta);
+          if (paisSmsmanBR && produtoSmsmanBR) {
+            const precoSmsmanBR = await smsman.buscarPreco(paisSmsmanBR, produtoSmsmanBR);
+            if (precoSmsmanBR && precoSmsmanBR.estoque > 0) menorCustoBR = precoSmsmanBR.custo;
+          }
+        }
+        if (menorCustoBR === Infinity) return sendJson(res, 200, { precoCentavos: null });
+        const taxaBR = await taxaCambioConsulta();
+        const custoReaisBR = Math.round(menorCustoBR * taxaBR * 100);
+        return sendJson(res, 200, { precoCentavos: custoReaisBR + 200 });
+      } catch (eBR) {
+        return sendJson(res, 200, { precoCentavos: null });
+      }
+    }
     const pais5simConsulta = pais5simPorIso(paisConsulta);
     const produto5simConsulta = produto5simPorNome(servicoNomeConsulta);
     if (!pais5simConsulta || !produto5simConsulta) return sendJson(res, 200, { precoCentavos: null });
@@ -261,9 +294,7 @@ async function api(req, res, pathname, method) {
       let menorCustoConsulta = Infinity;
       if (precosConsulta) { for (const op in precosConsulta) { if (precosConsulta[op].count > 0 && precosConsulta[op].cost < menorCustoConsulta) { menorCustoConsulta = precosConsulta[op].cost; } } }
       if (menorCustoConsulta === Infinity) return sendJson(res, 200, { precoCentavos: null });
-      const cambioResConsulta = await fetch('https://open.er-api.com/v6/latest/USD');
-      const cambioDataConsulta = await cambioResConsulta.json();
-      const taxaConsulta = cambioDataConsulta.rates && cambioDataConsulta.rates.BRL ? cambioDataConsulta.rates.BRL : 5.1;
+      const taxaConsulta = await taxaCambioConsulta();
       const custoReaisConsulta = Math.round(menorCustoConsulta * taxaConsulta * 100);
       const dbConsulta = load();
       const precoVendaConsulta = calcularPrecoVendaCentavos(custoReaisConsulta, dbConsulta);

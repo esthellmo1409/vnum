@@ -258,7 +258,7 @@ async function carregarCatalogo() {
   data.servicos.forEach(s => { precoPorServicoId[s.id] = s.precoCentavos; });
   const lista = document.getElementById('services-list');
   let servicosParaMostrar = data.servicos.filter(s => s.nome !== 'WhatsApp Internacional');
-  if (paisSelecionado && paisSelecionado !== 'BR') {
+  if (paisSelecionado) {
     lista.innerHTML = '<div style="padding:24px 12px; text-align:center; color:var(--muted);"><span class="dot"></span> Carregando serviços disponíveis...</div>';
     servicosParaMostrar = data.servicos.filter(s => !s.nome.toLowerCase().includes(' br '));
     function esperar(ms) { return new Promise(function(resolve) { setTimeout(resolve, ms); }); }
@@ -294,7 +294,7 @@ async function carregarCatalogo() {
       })
       .filter(function(s) { return s !== null; });
   }
-  if (servicosParaMostrar.length === 0 && paisSelecionado && paisSelecionado !== 'BR') {
+  if (servicosParaMostrar.length === 0 && paisSelecionado) {
     lista.innerHTML = '<div style="padding:24px 12px; text-align:center; color:var(--muted);">O estoque desse país muda com frequência. Nada disponível agora — tente atualizar em alguns segundos.<br><button class="btn btn-ghost btn-sm" style="margin-top:10px;" onclick="carregarCatalogo()">Atualizar</button></div>';
   } else {
     lista.innerHTML = servicosParaMostrar.map(s => {
@@ -443,11 +443,19 @@ function buscarServicoPorNome(pedacos) {
   });
 }
 
-document.getElementById('btn-atalho-whatsapp').addEventListener('click', () => {
+document.getElementById('btn-atalho-whatsapp').addEventListener('click', async () => {
   paisSelecionado = 'BR';
   renderizarPaises();
   const servico = buscarServicoPorNome(['whatsapp']);
   if (!servico) return alert('Cadastre um serviço "WhatsApp" no admin pra usar esse atalho.');
+  let precoAtual = servico.precoCentavos;
+  try {
+    const r = await fetch('/api/precos/internacional?pais=BR&servico=' + encodeURIComponent(servico.nome));
+    const pd = await r.json();
+    if (pd && pd.precoCentavos != null) precoAtual = pd.precoCentavos;
+  } catch (e) {}
+  const confirmado = confirm('Você confirma a compra desse número brasileiro pelo valor atualizado de R$ ' + centavosParaReais(precoAtual) + '?');
+  if (!confirmado) return;
   comprarNumero(servico.id);
 });
 
