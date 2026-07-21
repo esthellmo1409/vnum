@@ -75,19 +75,22 @@ async function carregarCatalogo() {
       }).join('');
     }
 
-    // Preenche os preços dos cards de destaque do WhatsApp (aleatório / promocional / escolher DDD)
-    const buscar = (pedacos) => data.servicos.find(s => {
-      const n = s.nome.trim().toLowerCase();
-      return pedacos.every(p => n.includes(p));
-    });
-    const preencher = (id, servico) => {
-      const el = document.getElementById(id);
-      if (!el) return;
-      el.textContent = servico ? 'R$ ' + centavosParaReais(servico.precoCentavos) : 'Em breve';
-    };
-    preencher('preco-aleatorio', buscar(['aleat']));
-    preencher('preco-promocional', buscar(['promocional']));
-    preencher('preco-ddd', buscar(['escolher']));
+    // Preenche os precos ao vivo dos cards de destaque (WhatsApp, Instagram, TikTok)
+    const mapaDestaques = { 'preco-destaque-whatsapp': 'whatsapp', 'preco-destaque-instagram': 'instagram', 'preco-destaque-tiktok': 'tiktok' };
+    for (const idEl in mapaDestaques) {
+      const elDestaque = document.getElementById(idEl);
+      if (!elDestaque) continue;
+      const nomeAlvo = mapaDestaques[idEl];
+      const servicoDestaque = data.servicos.find(s => s.nome.trim().toLowerCase() === nomeAlvo);
+      if (!servicoDestaque) { elDestaque.textContent = 'Indisponível'; continue; }
+      try {
+        const rDestaque = await fetch('/api/precos/internacional?pais=BR&servico=' + encodeURIComponent(servicoDestaque.nome));
+        const pdDestaque = await rDestaque.json();
+        elDestaque.textContent = pdDestaque && pdDestaque.precoCentavos != null ? 'R$ ' + centavosParaReais(pdDestaque.precoCentavos) : 'R$ ' + centavosParaReais(servicoDestaque.precoCentavos);
+      } catch (eDestaque) {
+        elDestaque.textContent = 'R$ ' + centavosParaReais(servicoDestaque.precoCentavos);
+      }
+    }
   } catch (e) {
     console.error('Erro ao carregar catálogo:', e);
   }
