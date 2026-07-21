@@ -735,6 +735,22 @@ async function api(req, res, pathname, method) {
       }
     }
 
+    if (pathname === '/api/admin/saldo-smsman' && method === 'GET') {
+      try {
+        const saldoRub = await smsman.obterSaldo();
+        let taxaRubBrl = 0.06;
+        try {
+          const cambioRes = await fetch('https://open.er-api.com/v6/latest/RUB');
+          const cambioData = await cambioRes.json();
+          if (cambioData.rates && cambioData.rates.BRL) taxaRubBrl = cambioData.rates.BRL;
+        } catch (e2) {}
+        const saldoCentavos = Math.round(saldoRub * taxaRubBrl * 100);
+        return sendJson(res, 200, { saldoRub, saldoCentavos, taxaRubBrl });
+      } catch (e) {
+        return sendJson(res, 502, { erro: 'Falha ao consultar saldo do SMS-Man.', detalhe: String(e.message) });
+      }
+    }
+
     if (pathname === '/api/admin/configuracoes' && method === 'GET') {
       const db = load();
       const config = db.configuracoes || { multiplicador5sim: 5, margemFixaCentavos: 100 };
