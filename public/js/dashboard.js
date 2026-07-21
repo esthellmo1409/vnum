@@ -509,6 +509,27 @@ document.getElementById('link-recarga').addEventListener('click', (e) => {
   e.preventDefault();
   document.getElementById('modal-recarga').classList.add('show');
 });
+document.getElementById('link-afiliado').addEventListener('click', async (e) => {
+  e.preventDefault();
+  document.getElementById('modal-afiliado').classList.add('show');
+  try {
+    const res = await fetch('/api/afiliado');
+    const data = await res.json();
+    document.getElementById('afiliado-link').value = window.location.origin + '/cadastro.html?ref=' + data.codigoAfiliado;
+    document.getElementById('afiliado-indicados').textContent = data.totalIndicados;
+    document.getElementById('afiliado-vendas').textContent = data.totalVendasComComissao;
+    document.getElementById('afiliado-saldo').textContent = 'R$ ' + centavosParaReais(data.saldoComissaoCentavos);
+  } catch (err) {}
+});
+document.getElementById('btn-copiar-link-afiliado').addEventListener('click', () => {
+  const campo = document.getElementById('afiliado-link');
+  campo.select();
+  navigator.clipboard.writeText(campo.value);
+  const btn = document.getElementById('btn-copiar-link-afiliado');
+  const textoOriginal = btn.textContent;
+  btn.textContent = 'Copiado!';
+  setTimeout(() => { btn.textContent = textoOriginal; }, 2000);
+});
 document.getElementById('link-suporte').addEventListener('click', (e) => {
   e.preventDefault();
   e.stopPropagation();

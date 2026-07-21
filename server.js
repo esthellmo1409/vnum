@@ -194,7 +194,7 @@ function serveStatic(req, res, pathname) {
 async function api(req, res, pathname, method) {
   // ----- AUTENTICAÇÃO -----
   if (pathname === '/api/auth/registro' && method === 'POST') {
-    const { nome, email, senha } = await readBody(req);
+    const { nome, email, senha, ref } = await readBody(req);
     if (!nome || !email || !senha || senha.length < 6) {
       return sendJson(res, 400, { erro: 'Preencha nome, e-mail e uma senha com 6+ caracteres.' });
     }
@@ -208,9 +208,17 @@ async function api(req, res, pathname, method) {
         email,
         senhaHash: hashPassword(senha),
         saldoCentavos: 0,
+        saldoComissaoCentavos: 0,
+        codigoAfiliado: null,
+        indicadoPor: null,
         isAdmin: false,
         criadoEm: new Date().toISOString()
       };
+      user.codigoAfiliado = 'AFF' + user.id;
+      if (ref) {
+        const afiliadoRef = db.users.find((u) => u.codigoAfiliado === ref);
+        if (afiliadoRef) user.indicadoPor = afiliadoRef.id;
+      }
       db.users.push(user);
       const token = newToken();
       sessions.set(token, user.id);
@@ -442,6 +450,20 @@ async function api(req, res, pathname, method) {
         expiraEm: new Date(Date.now() + PEDIDO_TTL_MS).toISOString()
       };
       if (slot) { slot.pedidoAtualId = order.id; }
+      order.comissaoCentavos = null;
+      order.comissaoAfiliadoId = null;
+      if (!slot && u.indicadoPor && order.custoReaisCentavos != null) {
+        const afiliado = db.users.find((x) => x.id === u.indicadoPor);
+        if (afiliado) {
+          const lucroVendaCentavos = order.precoPagoCentavos - order.custoReaisCentavos;
+          if (lucroVendaCentavos > 0) {
+            const comissao = Math.round(lucroVendaCentavos * 0.30);
+            afiliado.saldoComissaoCentavos = (afiliado.saldoComissaoCentavos || 0) + comissao;
+            order.comissaoCentavos = comissao;
+            order.comissaoAfiliadoId = afiliado.id;
+          }
+        }
+      }
       db.orders.push(order);
       return sendJson(res, 201, { pedido: order, saldoCentavos: u.saldoCentavos });
     });
@@ -783,6 +805,30 @@ async function api(req, res, pathname, method) {
     if (pathname === '/api/admin/usuarios' && method === 'GET') {
       const db = load();
       return sendJson(res, 200, { usuarios: db.users.map((u) => Object.assign({}, publicUser(u), { criadoEm: u.criadoEm })) });
+    }
+
+    if (pathname === '/api/admin/afiliados' && method === 'GET') {
+      const db = load();
+      const lista = db.users.map((u) => {
+        const indicados = db.users.filter((x) => x.indicadoPor === u.id).length;
+        const vendas = db.orders.filter((o) => o.comissaoAfiliadoId === u.id).length;
+        return {
+          id: u.id, nome: u.nome, email: u.email, codigoAfiliado: u.codigoAfiliado,
+          totalIndicados: indicados, totalVendasComComissao: vendas,
+          saldoComissaoCentavos: u.saldoComissaoCentavos || 0
+        };
+      }).filter((a) => a.totalIndicados > 0 || a.saldoComissaoCentavos > 0);
+      return sendJson(res, 200, { afiliados: lista });
+    }
+
+    const pagarComissaoMatch = pathname.match(/^\/api\/admin\/afiliados\/(\d+)\/pagar$/);
+    if (pagarComissaoMatch && method === 'POST') {
+      return transact((db) => {
+        const u = db.users.find((x) => x.id === Number(pagarComissaoMatch[1]));
+        if (!u) return sendJson(res, 404, { erro: 'Afiliado não encontrado.' });
+        u.saldoComissaoCentavos = 0;
+        return sendJson(res, 200, { ok: true });
+      });
     }
 
     // Credita saldo manualmente num usuário (uso do admin, ex: pagamento fora do site)

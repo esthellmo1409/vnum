@@ -17,6 +17,7 @@
     <a class="side-link" data-tab="pedidos" href="#">Pedidos</a>
     <a class="side-link" data-tab="usuarios" href="#">Usuários</a>
     <a class="side-link" data-tab="financeiro" href="#">Gestão Financeira</a>
+    <a class="side-link" data-tab="afiliados" href="#">Afiliados</a>
     <div class="side-spacer"></div>
     <a class="side-link" href="/dashboard.html">Ver painel do cliente</a>
     <a class="side-link" href="#" id="btn-sair">Sair</a>
@@ -73,6 +74,15 @@
         <table>
           <thead><tr><th>Pedido</th><th>Usuário</th><th>Serviço</th><th>Número</th><th>Custo (US$)</th><th>Custo (R$)</th><th>Venda (R$)</th><th>Lucro (R$)</th><th>Data</th></tr></thead>
           <tbody id="financeiro-body"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <section id="painel-afiliados" style="display:none;">
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Nome</th><th>E-mail</th><th>Código</th><th>Indicados</th><th>Vendas c/ comissão</th><th>Saldo comissão</th><th></th></tr></thead>
+          <tbody id="afiliados-body"></tbody>
         </table>
       </div>
     </section>

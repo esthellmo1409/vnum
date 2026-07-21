@@ -11,7 +11,7 @@ async function verificarAdmin() {
 function centavosParaReais(c) { return (c / 100).toFixed(2).replace('.', ','); }
 
 // ----- Navegação entre painéis -----
-const titulos = { slots: 'Números (slots)', servicos: 'Serviços e preços', pedidos: 'Pedidos', usuarios: 'Usuários', financeiro: 'Gestão Financeira' };
+const titulos = { slots: 'Números (slots)', servicos: 'Serviços e preços', pedidos: 'Pedidos', usuarios: 'Usuários', financeiro: 'Gestão Financeira', afiliados: 'Afiliados' };
 document.querySelectorAll('.side-link[data-tab]').forEach(link => {
   link.addEventListener('click', (e) => {
     e.preventDefault();
@@ -19,7 +19,7 @@ document.querySelectorAll('.side-link[data-tab]').forEach(link => {
     link.classList.add('active');
     const alvo = link.dataset.tab;
     document.getElementById('page-title').textContent = titulos[alvo];
-    ['slots', 'servicos', 'pedidos', 'usuarios', 'financeiro'].forEach(t => {
+    ['slots', 'servicos', 'pedidos', 'usuarios', 'financeiro', 'afiliados'].forEach(t => {
       document.getElementById('painel-' + t).style.display = t === alvo ? 'block' : 'none';
     });
     if (alvo === 'slots') carregarSlots();
@@ -27,6 +27,7 @@ document.querySelectorAll('.side-link[data-tab]').forEach(link => {
     if (alvo === 'pedidos') carregarPedidosAdmin();
     if (alvo === 'usuarios') carregarUsuarios();
     if (alvo === 'financeiro') { carregarFinanceiro(); carregarConfiguracoes(); carregarSaldo5sim(); carregarSaldoSmsman(); }
+    if (alvo === 'afiliados') { carregarAfiliados(); }
   });
 });
 
@@ -312,6 +313,30 @@ async function carregarSaldoSmsman() {
   } catch (e) {
     el.textContent = 'Indisponível';
   }
+}
+
+// ----- Afiliados -----
+async function carregarAfiliados() {
+  const res = await fetch('/api/admin/afiliados');
+  const data = await res.json();
+  document.getElementById('afiliados-body').innerHTML = data.afiliados.map(a => `
+    <tr>
+      <td>${a.nome}</td>
+      <td>${a.email}</td>
+      <td style="font-family:var(--mono)">${a.codigoAfiliado}</td>
+      <td>${a.totalIndicados}</td>
+      <td>${a.totalVendasComComissao}</td>
+      <td style="font-family:var(--mono)">R$ ${centavosParaReais(a.saldoComissaoCentavos)}</td>
+      <td>
+        <button class="btn btn-ghost btn-sm" onclick="marcarComissaoPaga(${a.id})">Marcar como pago</button>
+      </td>
+    </tr>
+  `).join('');
+}
+async function marcarComissaoPaga(id) {
+  if (!confirm('Confirma que já pagou a comissão desse afiliado? O saldo dele será zerado.')) return;
+  await fetch('/api/admin/afiliados/' + id + '/pagar', { method: 'POST' });
+  carregarAfiliados();
 }
 
 // ----- Usuários -----
