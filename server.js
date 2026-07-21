@@ -148,7 +148,7 @@ function getUser(req) {
 
 function publicUser(u) {
   if (!u) return null;
-  return { id: u.id, nome: u.nome, email: u.email, saldoCentavos: u.saldoCentavos, isAdmin: !!u.isAdmin };
+  return { id: u.id, nome: u.nome, email: u.email, saldoCentavos: u.saldoCentavos, isAdmin: !!u.isAdmin, codigoAfiliado: u.codigoAfiliado || null, saldoComissaoCentavos: u.saldoComissaoCentavos || 0 };
 }
 
 function extrairCodigo(mensagem) {
@@ -805,6 +805,17 @@ async function api(req, res, pathname, method) {
     if (pathname === '/api/admin/usuarios' && method === 'GET') {
       const db = load();
       return sendJson(res, 200, { usuarios: db.users.map((u) => Object.assign({}, publicUser(u), { criadoEm: u.criadoEm })) });
+    }
+
+    const tornarAfiliadoMatch = pathname.match(/^\/api\/admin\/usuarios\/(\d+)\/tornar-afiliado$/);
+    if (tornarAfiliadoMatch && method === 'POST') {
+      return transact((db) => {
+        const u = db.users.find((x) => x.id === Number(tornarAfiliadoMatch[1]));
+        if (!u) return sendJson(res, 404, { erro: 'Usuário não encontrado.' });
+        if (!u.codigoAfiliado) { u.codigoAfiliado = 'AFF' + u.id; }
+        if (u.saldoComissaoCentavos == null) { u.saldoComissaoCentavos = 0; }
+        return sendJson(res, 200, { codigoAfiliado: u.codigoAfiliado });
+      });
     }
 
     if (pathname === '/api/admin/afiliados' && method === 'GET') {

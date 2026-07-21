@@ -355,10 +355,25 @@ async function carregarUsuarios() {
         <button class="btn btn-ghost btn-sm" onclick="abrirCreditar(${u.id}, '${u.nome.replace(/'/g, "\\'")}')">Creditar saldo</button>
         <button class="btn btn-ghost btn-sm" onclick="abrirRetirar(${u.id}, '${u.nome.replace(/'/g, "\\'")}')">Retirar saldo</button>
         <button class="btn btn-ghost btn-sm" onclick="abrirRedefinirSenha(${u.id}, '${u.nome.replace(/'/g, "\\'")}')">Redefinir senha</button>
+        ${u.codigoAfiliado ? '<button class="btn btn-ghost btn-sm" onclick="verLinkAfiliado(\'' + u.codigoAfiliado + '\')">Ver link afiliado</button>' : '<button class="btn btn-ghost btn-sm" onclick="tornarAfiliado(' + u.id + ')">Tornar afiliado</button>'}
         <button class="btn btn-ghost btn-sm" style="color:var(--red)" onclick="excluirUsuario(${u.id}, '${u.nome.replace(/'/g, "\\'")}')">Excluir</button>
       </td>
     </tr>
   `).join('');
+}
+
+async function tornarAfiliado(id) {
+  if (!confirm('Tornar esse usuário um afiliado? Ele passará a gerar comissão pra você aprovar depois.')) return;
+  const res = await fetch('/api/admin/usuarios/' + id + '/tornar-afiliado', { method: 'POST' });
+  const data = await res.json();
+  if (res.ok) {
+    alert('Link de afiliado: ' + window.location.origin + '/cadastro.html?ref=' + data.codigoAfiliado);
+    carregarUsuarios();
+  }
+}
+function verLinkAfiliado(codigo) {
+  const link = window.location.origin + '/cadastro.html?ref=' + codigo;
+  prompt('Link de afiliado (copie abaixo):', link);
 }
 
 function abrirCreditar(userId, nome) {
