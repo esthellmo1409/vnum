@@ -26,7 +26,7 @@ document.querySelectorAll('.side-link[data-tab]').forEach(link => {
     if (alvo === 'servicos') carregarServicos();
     if (alvo === 'pedidos') carregarPedidosAdmin();
     if (alvo === 'usuarios') carregarUsuarios();
-    if (alvo === 'financeiro') { carregarFinanceiro(); carregarConfiguracoes(); carregarSaldo5sim(); }
+    if (alvo === 'financeiro') { carregarFinanceiro(); carregarConfiguracoes(); carregarSaldo5sim(); carregarSaldoSmsman(); }
   });
 });
 
@@ -296,6 +296,19 @@ async function carregarSaldo5sim() {
     const data = await res.json();
     if (!res.ok) { el.textContent = 'Indisponível'; return; }
     el.textContent = 'R$ ' + centavosParaReais(data.saldoCentavos) + ' (US$ ' + Number(data.saldoDolar).toFixed(2) + ')';
+  } catch (e) {
+    el.textContent = 'Indisponível';
+  }
+}
+
+async function carregarSaldoSmsman() {
+  const el = document.getElementById('saldo-smsman-valor');
+  if (!el) return;
+  try {
+    const res = await fetch('/api/admin/saldo-smsman');
+    const data = await res.json();
+    if (!res.ok) { el.textContent = 'Indisponível'; return; }
+    el.textContent = 'R$ ' + centavosParaReais(data.saldoCentavos) + ' (RUB ' + Number(data.saldoRub).toFixed(2) + ')';
   } catch (e) {
     el.textContent = 'Indisponível';
   }
