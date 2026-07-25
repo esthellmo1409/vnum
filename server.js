@@ -383,6 +383,8 @@ async function api(req, res, pathname, method) {
     let custoReaisCentavos = null;
     let precoVendaCentavos = null;
     if (servicoCheck && !temSlotFisico) {
+      let quote5sim = null;
+      let quoteSmsman = null;
       const pais5sim = pais5simPorIso(paisAlvo);
       const produto5sim = produto5simPorNome(servicoCheck.nome);
       if (pais5sim && produto5sim) {
@@ -390,30 +392,18 @@ async function api(req, res, pathname, method) {
           const precos = await sim5.buscarPreco(pais5sim, produto5sim);
           let menorCusto = Infinity;
           if (precos) { for (const op in precos) { if (precos[op].count > 0 && precos[op].cost < menorCusto) { menorCusto = precos[op].cost; } } }
-          const operadoraEscolhida = precos ? 'any' : null;
-          if (operadoraEscolhida && menorCusto !== Infinity) {
+          if (menorCusto !== Infinity) {
             let taxaUsdBrl = 5.1;
             try {
               const cambioRes = await fetch("https://open.er-api.com/v6/latest/USD");
               const cambioData = await cambioRes.json();
               if (cambioData.rates && cambioData.rates.BRL) taxaUsdBrl = cambioData.rates.BRL;
             } catch (e2) {}
-            // Preco cobrado do cliente = mesma cotacao mostrada na tela (garante que ele nunca pague mais do que viu)
             const custoCotadoReaisCentavos = Math.round(menorCusto * taxaUsdBrl * 100);
-            precoVendaCentavos = paisAlvo === 'BR' ? (custoCotadoReaisCentavos + 200) : calcularPrecoVendaCentavos(custoCotadoReaisCentavos, dbCheck);
-            const excedeAnunciado5sim = precoEsperadoCentavos != null && precoVendaCentavos > precoEsperadoCentavos * 1.10;
-            if (excedeAnunciado5sim) { precoMudouDesdeATela = true; } else {
-              compra5sim = await sim5.comprarNumero(pais5sim, operadoraEscolhida, produto5sim);
-            }
-            // Custo real pago ao 5SIM (pode ser diferente do cotado, guardado so pra relatorio financeiro)
-            if (compra5sim) {
-              custoReaisCentavos = Math.round(compra5sim.price * taxaUsdBrl * 100);
-            }
+            quote5sim = { pais5sim, produto5sim, taxaUsdBrl, custoReaisCentavos: custoCotadoReaisCentavos };
           }
-        } catch (e) { compra5sim = null; }
+        } catch (e) {}
       }
-    }
-    if (servicoCheck && !temSlotFisico && !compra5sim) {
       const paisSmsmanId = await paisSmsmanPorIso(paisAlvo);
       const produtoSmsmanId = produtoSmsmanPorNome(servicoCheck.nome);
       if (paisSmsmanId && produtoSmsmanId) {
@@ -427,17 +417,40 @@ async function api(req, res, pathname, method) {
               if (cambioDataSmsman.rates && cambioDataSmsman.rates.BRL) taxaUsdBrlSmsman = cambioDataSmsman.rates.BRL;
             } catch (e3) {}
             const custoCotadoReaisCentavosSmsman = Math.round(precoSmsman.custo * taxaUsdBrlSmsman * 100);
-            precoVendaCentavos = paisAlvo === 'BR' ? (custoCotadoReaisCentavosSmsman + 200) : calcularPrecoVendaCentavos(custoCotadoReaisCentavosSmsman, dbCheck);
-            const excedeAnunciadoSmsman = precoEsperadoCentavos != null && precoVendaCentavos > precoEsperadoCentavos * 1.10;
-            if (excedeAnunciadoSmsman) { precoMudouDesdeATela = true; }
-            const compra = excedeAnunciadoSmsman ? null : await smsman.comprarNumero(paisSmsmanId, produtoSmsmanId);
+            quoteSmsman = { paisSmsmanId, produtoSmsmanId, custoUsd: precoSmsman.custo, taxaUsdBrl: taxaUsdBrlSmsman, custoReaisCentavos: custoCotadoReaisCentavosSmsman };
+          }
+        } catch (e4) {}
+      }
+      const ordemFornecedores = [];
+      if (quote5sim && quoteSmsman) {
+        if (quote5sim.custoReaisCentavos <= quoteSmsman.custoReaisCentavos) { ordemFornecedores.push('5sim', 'smsman'); }
+        else { ordemFornecedores.push('smsman', '5sim'); }
+      } else if (quote5sim) { ordemFornecedores.push('5sim'); }
+      else if (quoteSmsman) { ordemFornecedores.push('smsman'); }
+      for (const fornecedor of ordemFornecedores) {
+        if (fornecedor === '5sim' && !compra5sim) {
+          precoVendaCentavos = paisAlvo === 'BR' ? (quote5sim.custoReaisCentavos + 200) : calcularPrecoVendaCentavos(quote5sim.custoReaisCentavos, dbCheck);
+          const excedeAnunciado5sim = precoEsperadoCentavos != null && precoVendaCentavos > precoEsperadoCentavos * 1.10;
+          if (excedeAnunciado5sim) { precoMudouDesdeATela = true; continue; }
+          try {
+            compra5sim = await sim5.comprarNumero(quote5sim.pais5sim, 'any', quote5sim.produto5sim);
+            if (compra5sim) { custoReaisCentavos = Math.round(compra5sim.price * quote5sim.taxaUsdBrl * 100); }
+          } catch (e) { compra5sim = null; }
+        }
+        if (fornecedor === 'smsman' && !compraSmsman) {
+          precoVendaCentavos = paisAlvo === 'BR' ? (quoteSmsman.custoReaisCentavos + 200) : calcularPrecoVendaCentavos(quoteSmsman.custoReaisCentavos, dbCheck);
+          const excedeAnunciadoSmsman = precoEsperadoCentavos != null && precoVendaCentavos > precoEsperadoCentavos * 1.10;
+          if (excedeAnunciadoSmsman) { precoMudouDesdeATela = true; continue; }
+          try {
+            const compra = await smsman.comprarNumero(quoteSmsman.paisSmsmanId, quoteSmsman.produtoSmsmanId);
             if (compra) {
               compraSmsman = compra;
-              custoDolarSmsman = precoSmsman.custo;
-              custoReaisCentavos = Math.round(precoSmsman.custo * taxaUsdBrlSmsman * 100);
+              custoDolarSmsman = quoteSmsman.custoUsd;
+              custoReaisCentavos = Math.round(quoteSmsman.custoUsd * quoteSmsman.taxaUsdBrl * 100);
             }
-          }
-        } catch (e4) { compraSmsman = null; }
+          } catch (e4) { compraSmsman = null; }
+        }
+        if (compra5sim || compraSmsman) break;
       }
     }
     return transact((db) => {
