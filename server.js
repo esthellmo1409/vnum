@@ -373,6 +373,7 @@ async function api(req, res, pathname, method) {
     if (!user) return requireLogin();
     const { servicoId, pais, ddd, precoEsperadoCentavos } = await readBody(req);
     let precoMudouDesdeATela = false;
+    let precoAtualDisponivel = null;
     const paisAlvo = pais || 'BR';
     const dbCheck = load();
     const servicoCheck = dbCheck.services.find((s) => s.id === servicoId && s.ativo);
@@ -431,6 +432,7 @@ async function api(req, res, pathname, method) {
         if (fornecedor === '5sim' && !compra5sim) {
           precoVendaCentavos = paisAlvo === 'BR' ? (quote5sim.custoReaisCentavos + 200) : calcularPrecoVendaCentavos(quote5sim.custoReaisCentavos, dbCheck);
           const excedeAnunciado5sim = precoEsperadoCentavos != null && precoVendaCentavos > precoEsperadoCentavos * 1.10;
+          if (precoAtualDisponivel == null || precoVendaCentavos < precoAtualDisponivel) precoAtualDisponivel = precoVendaCentavos;
           if (excedeAnunciado5sim) { precoMudouDesdeATela = true; continue; }
           try {
             compra5sim = await sim5.comprarNumero(quote5sim.pais5sim, 'any', quote5sim.produto5sim);
@@ -440,6 +442,7 @@ async function api(req, res, pathname, method) {
         if (fornecedor === 'smsman' && !compraSmsman) {
           precoVendaCentavos = paisAlvo === 'BR' ? (quoteSmsman.custoReaisCentavos + 200) : calcularPrecoVendaCentavos(quoteSmsman.custoReaisCentavos, dbCheck);
           const excedeAnunciadoSmsman = precoEsperadoCentavos != null && precoVendaCentavos > precoEsperadoCentavos * 1.10;
+          if (precoAtualDisponivel == null || precoVendaCentavos < precoAtualDisponivel) precoAtualDisponivel = precoVendaCentavos;
           if (excedeAnunciadoSmsman) { precoMudouDesdeATela = true; continue; }
           try {
             const compra = await smsman.comprarNumero(quoteSmsman.paisSmsmanId, quoteSmsman.produtoSmsmanId);
@@ -464,7 +467,7 @@ async function api(req, res, pathname, method) {
       const slot = db.slots.find((s) => s.status === 'livre' && (s.pais || 'BR') === paisAlvo && (!ddd || extrairDDD(s.numero) === ddd));
       if (!slot && !compra5sim && !compraSmsman) {
         if (precoMudouDesdeATela) {
-          return sendJson(res, 409, { erro: 'O preço mudou desde que você viu a tela. Atualize a página e tente novamente.' });
+          return sendJson(res, 409, { erro: 'Os valores mudam de acordo com a disponibilidade dos servidores no momento.', precoAtualizado: precoAtualDisponivel });
         }
         return sendJson(res, 503, { erro: ddd ? `Nenhum número disponível agora para o DDD ${ddd}.` : `Nenhum número disponível agora para ${paisAlvo === 'BR' ? 'o Brasil' : paisAlvo}. Tente novamente em instantes.` });
       }
