@@ -371,7 +371,8 @@ async function api(req, res, pathname, method) {
   // ----- PEDIDOS (comprar número) -----
   if (pathname === '/api/pedidos' && method === 'POST') {
     if (!user) return requireLogin();
-    const { servicoId, pais, ddd } = await readBody(req);
+    const { servicoId, pais, ddd, precoEsperadoCentavos } = await readBody(req);
+    let precoMudouDesdeATela = false;
     const paisAlvo = pais || 'BR';
     const dbCheck = load();
     const servicoCheck = dbCheck.services.find((s) => s.id === servicoId && s.ativo);
@@ -400,7 +401,10 @@ async function api(req, res, pathname, method) {
             // Preco cobrado do cliente = mesma cotacao mostrada na tela (garante que ele nunca pague mais do que viu)
             const custoCotadoReaisCentavos = Math.round(menorCusto * taxaUsdBrl * 100);
             precoVendaCentavos = paisAlvo === 'BR' ? (custoCotadoReaisCentavos + 200) : calcularPrecoVendaCentavos(custoCotadoReaisCentavos, dbCheck);
-            compra5sim = await sim5.comprarNumero(pais5sim, operadoraEscolhida, produto5sim);
+            const excedeAnunciado5sim = precoEsperadoCentavos != null && precoVendaCentavos > precoEsperadoCentavos * 1.10;
+            if (excedeAnunciado5sim) { precoMudouDesdeATela = true; } else {
+              compra5sim = await sim5.comprarNumero(pais5sim, operadoraEscolhida, produto5sim);
+            }
             // Custo real pago ao 5SIM (pode ser diferente do cotado, guardado so pra relatorio financeiro)
             if (compra5sim) {
               custoReaisCentavos = Math.round(compra5sim.price * taxaUsdBrl * 100);
@@ -424,7 +428,9 @@ async function api(req, res, pathname, method) {
             } catch (e3) {}
             const custoCotadoReaisCentavosSmsman = Math.round(precoSmsman.custo * taxaUsdBrlSmsman * 100);
             precoVendaCentavos = paisAlvo === 'BR' ? (custoCotadoReaisCentavosSmsman + 200) : calcularPrecoVendaCentavos(custoCotadoReaisCentavosSmsman, dbCheck);
-            const compra = await smsman.comprarNumero(paisSmsmanId, produtoSmsmanId);
+            const excedeAnunciadoSmsman = precoEsperadoCentavos != null && precoVendaCentavos > precoEsperadoCentavos * 1.10;
+            if (excedeAnunciadoSmsman) { precoMudouDesdeATela = true; }
+            const compra = excedeAnunciadoSmsman ? null : await smsman.comprarNumero(paisSmsmanId, produtoSmsmanId);
             if (compra) {
               compraSmsman = compra;
               custoDolarSmsman = precoSmsman.custo;
@@ -444,6 +450,9 @@ async function api(req, res, pathname, method) {
       }
       const slot = db.slots.find((s) => s.status === 'livre' && (s.pais || 'BR') === paisAlvo && (!ddd || extrairDDD(s.numero) === ddd));
       if (!slot && !compra5sim && !compraSmsman) {
+        if (precoMudouDesdeATela) {
+          return sendJson(res, 409, { erro: 'O preço mudou desde que você viu a tela. Atualize a página e tente novamente.' });
+        }
         return sendJson(res, 503, { erro: ddd ? `Nenhum número disponível agora para o DDD ${ddd}.` : `Nenhum número disponível agora para ${paisAlvo === 'BR' ? 'o Brasil' : paisAlvo}. Tente novamente em instantes.` });
       }
       u.saldoCentavos -= precoCobrado;

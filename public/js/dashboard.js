@@ -306,7 +306,7 @@ async function carregarCatalogo() {
     lista.innerHTML = servicosParaMostrar.map(s => {
       const { icone, bg, txt } = iconeDoServico(s.nome);
       return `
-      <div class="service-row" onclick="comprarNumero(${s.id})">
+      <div class="service-row" onclick="comprarNumero(${s.id}, null, ${s.precoCentavos})">
         <span class="service-row-icon" style="background:${bg}; color:${txt || '#fff'};"><i class="ti ${icone}" aria-hidden="true"></i></span>
         <span class="service-row-nome">${s.nome}</span>
         <span class="service-row-preco">R$ ${centavosParaReais(s.precoCentavos)}</span>
@@ -328,10 +328,10 @@ function preencherPrecosAtalho() {
   preencherPreco('atalho-preco-ddd', buscarServicoPorNome(['escolher']));
 }
 
-async function comprarNumero(servicoId, ddd) {
+async function comprarNumero(servicoId, ddd, precoEsperadoCentavos) {
   const res = await fetch('/api/pedidos', {
     method: 'POST', headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ servicoId, pais: paisSelecionado, ddd: ddd || undefined })
+    body: JSON.stringify({ servicoId, pais: paisSelecionado, ddd: ddd || undefined, precoEsperadoCentavos: precoEsperadoCentavos != null ? precoEsperadoCentavos : undefined })
   });
   const data = await res.json();
   if (!res.ok) { alert(data.erro); return; }
@@ -462,7 +462,7 @@ document.getElementById('btn-atalho-whatsapp').addEventListener('click', async (
   } catch (e) {}
   const confirmado = confirm('Você confirma a compra desse número brasileiro pelo valor atualizado de R$ ' + centavosParaReais(precoAtual) + '?');
   if (!confirmado) return;
-  comprarNumero(servico.id);
+  comprarNumero(servico.id, null, precoAtual);
 });
 
 let servicoDDDSelecionado = null;
@@ -494,7 +494,7 @@ document.getElementById('btn-comprar-ddd').addEventListener('click', async () =>
   if (!ddd) return alert('Selecione um DDD.');
   if (!servicoDDDSelecionado) return;
   document.getElementById('modal-ddd').classList.remove('show');
-  comprarNumero(servicoDDDSelecionado.id, ddd);
+  comprarNumero(servicoDDDSelecionado.id, ddd, servicoDDDSelecionado.precoCentavos);
 });
 
 document.getElementById('link-fallback-aleatorio').addEventListener('click', (e) => {
@@ -502,7 +502,7 @@ document.getElementById('link-fallback-aleatorio').addEventListener('click', (e)
   document.getElementById('modal-ddd').classList.remove('show');
   const servico = buscarServicoPorNome(['aleat']) || buscarServicoPorNome(['whatsapp']);
   if (!servico) return alert('Cadastre um serviço "WhatsApp BR DDD Aleatório" no admin pra usar esse atalho.');
-  comprarNumero(servico.id);
+  comprarNumero(servico.id, null, servico.precoCentavos);
 });
 
 document.getElementById('link-recarga').addEventListener('click', (e) => {
