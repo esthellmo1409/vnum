@@ -334,7 +334,17 @@ async function comprarNumero(servicoId, ddd, precoEsperadoCentavos) {
     body: JSON.stringify({ servicoId, pais: paisSelecionado, ddd: ddd || undefined, precoEsperadoCentavos: precoEsperadoCentavos != null ? precoEsperadoCentavos : undefined })
   });
   const data = await res.json();
-  if (!res.ok) { alert(data.erro); return; }
+  if (!res.ok) {
+    if (data.precoAtualizado != null) {
+      const confirmarNovoPreco = confirm(data.erro + '\n\nPreço disponível agora: R$ ' + centavosParaReais(data.precoAtualizado) + '. Deseja continuar com a compra por esse valor?');
+      if (confirmarNovoPreco) {
+        return comprarNumero(servicoId, ddd, data.precoAtualizado);
+      }
+      return;
+    }
+    alert(data.erro);
+    return;
+  }
   atualizarSaldoUI(data.saldoCentavos);
   abrirModalPedido(data.pedido);
   carregarHistorico();
