@@ -785,6 +785,78 @@ async function api(req, res, pathname, method) {
       return sendJson(res, 200, { pedidos: pedidosComUsuario.sort((a, b) => new Date(b.criadoEm) - new Date(a.criadoEm)) });
     }
 
+    if (pathname === '/api/admin/metricas' && method === 'GET') {
+      const db = load();
+      const agora = Date.now();
+      const inicioDia = new Date(); inicioDia.setHours(0, 0, 0, 0);
+      const seteDias = agora - 7 * 24 * 60 * 60 * 1000;
+      const trintaDias = agora - 30 * 24 * 60 * 60 * 1000;
+      const noPeriodo = (p, desde) => new Date(p.criadoEm).getTime() >= desde;
+      const pedidos = db.orders || [];
+      const hoje = pedidos.filter((p) => noPeriodo(p, inicioDia.getTime()));
+      const d7 = pedidos.filter((p) => noPeriodo(p, seteDias));
+      const d30 = pedidos.filter((p) => noPeriodo(p, trintaDias));
+      const taxa = (lista) => {
+        if (!lista.length) return 0;
+        const ok = lista.filter((p) => p.status === 'recebido').length;
+        return Math.round((ok / lista.length) * 100);
+      };
+      const receita = (lista) => lista
+        .filter((p) => p.status === 'recebido' || p.status === 'aguardando')
+        .reduce((acc, p) => {
+          if (p.precoPagoCentavos != null) return acc + p.precoPagoCentavos;
+          const s = db.services.find((x) => x.id === p.servicoId);
+          return acc + (s ? s.precoCentavos : 0);
+        }, 0);
+      const slotsLivres = (db.slots || []).filter((s) => s.status === 'livre').length;
+      const aguardando = pedidos.filter((p) => p.status === 'aguardando').length;
+      return sendJson(res, 200, {
+        metricas: {
+          pedidosHoje: hoje.length,
+          pedidos7d: d7.length,
+          pedidos30d: d30.length,
+          taxaEntrega7d: taxa(d7),
+          receitaHojeCentavos: receita(hoje),
+          receita7dCentavos: receita(d7),
+          receita30dCentavos: receita(d30),
+          ticketMedio7dCentavos: d7.length ? Math.round(receita(d7) / d7.length) : 0,
+          slotsLivres,
+          aguardando,
+          usuarios: (db.users || []).filter((u) => !u.isAdmin).length
+        }
+      });
+    }
+
+    const cancelarAdminMatch = pathname.match(/^\/api\/admin\/pedidos\/(\d+)\/cancelar$/);
+    if (cancelarAdminMatch && method === 'POST') {
+      const dbPeek = load();
+      const pedidoPeek = dbPeek.orders.find((o) => o.id === Number(cancelarAdminMatch[1]));
+      if (!pedidoPeek) return sendJson(res, 404, { erro: 'Pedido não encontrado.' });
+      if (pedidoPeek.status !== 'aguardando') {
+        return sendJson(res, 400, { erro: 'Só dá pra cancelar pedidos aguardando SMS.' });
+      }
+      if (pedidoPeek.origem === '5sim' && pedidoPeek.sim5PedidoId) {
+        try { await sim5.cancelarPedido(pedidoPeek.sim5PedidoId); } catch (e) { console.error('Erro ao cancelar no 5SIM (admin):', e.message); }
+      }
+      if (pedidoPeek.origem === 'smsman' && pedidoPeek.smsmanPedidoId) {
+        try { await smsman.cancelarNumero(pedidoPeek.smsmanPedidoId); } catch (e) { console.error('Erro ao cancelar no SMS-Man (admin):', e.message); }
+      }
+      return transact((db) => {
+        const pedido = db.orders.find((o) => o.id === Number(cancelarAdminMatch[1]));
+        if (!pedido || pedido.status !== 'aguardando') {
+          return sendJson(res, 400, { erro: 'Só dá pra cancelar pedidos aguardando SMS.' });
+        }
+        const servico = db.services.find((s) => s.id === pedido.servicoId);
+        const u = db.users.find((x) => x.id === pedido.userId);
+        const valorEstorno = pedido.precoPagoCentavos != null ? pedido.precoPagoCentavos : (servico ? servico.precoCentavos : 0);
+        if (u) u.saldoCentavos += valorEstorno;
+        pedido.status = 'cancelado';
+        const slot = pedido.slotId ? db.slots.find((s) => s.id === pedido.slotId) : null;
+        if (slot) { slot.status = 'livre'; slot.pedidoAtualId = null; }
+        return sendJson(res, 200, { ok: true, pedido });
+      });
+    }
+
     if (pathname === '/api/admin/saldo-5sim' && method === 'GET') {
       try {
         const perfil = await sim5.buscarPerfil();

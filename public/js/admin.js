@@ -1,5 +1,10 @@
 let slotParaSimular = null;
 let usuarioParaCreditar = null;
+const PAGE_SIZE = 20;
+let todosPedidos = [];
+let todosUsuarios = [];
+let paginaPedidos = 1;
+let paginaUsuarios = 1;
 
 async function verificarAdmin() {
   const res = await fetch('/api/auth/eu');
@@ -10,8 +15,44 @@ async function verificarAdmin() {
 
 function centavosParaReais(c) { return (c / 100).toFixed(2).replace('.', ','); }
 
+function toast(msg, tipo = 'ok') {
+  const wrap = document.getElementById('toast-wrap');
+  if (!wrap) { alert(msg); return; }
+  const el = document.createElement('div');
+  el.className = 'toast ' + tipo;
+  el.textContent = msg;
+  wrap.appendChild(el);
+  setTimeout(() => el.remove(), 3200);
+}
+
+async function copiarTexto(texto) {
+  try {
+    await navigator.clipboard.writeText(texto);
+    toast('Copiado: ' + texto);
+  } catch (_) {
+    toast('Não foi possível copiar', 'erro');
+  }
+}
+
 // ----- Navegação entre painéis -----
-const titulos = { slots: 'Números (slots)', servicos: 'Serviços e preços', pedidos: 'Pedidos', usuarios: 'Usuários', financeiro: 'Gestão Financeira', afiliados: 'Afiliados' };
+const titulos = {
+  resumo: 'Resumo',
+  slots: 'Números (slots)',
+  servicos: 'Serviços e preços',
+  pedidos: 'Pedidos',
+  usuarios: 'Usuários',
+  financeiro: 'Gestão Financeira',
+  afiliados: 'Afiliados'
+};
+const subtitulos = {
+  resumo: 'Visão rápida do dia — pedidos, entrega e receita.',
+  slots: 'Slots físicos opcionais (chipeira).',
+  servicos: 'Catálogo e preços cobrados do cliente.',
+  pedidos: 'Busca, filtros e ações rápidas.',
+  usuarios: 'Saldo, afiliados e suporte de conta.',
+  financeiro: 'Lucro, saldos das APIs e margem.',
+  afiliados: 'Comissões e indicados.'
+};
 document.querySelectorAll('.side-link[data-tab]').forEach(link => {
   link.addEventListener('click', (e) => {
     e.preventDefault();
@@ -19,9 +60,13 @@ document.querySelectorAll('.side-link[data-tab]').forEach(link => {
     link.classList.add('active');
     const alvo = link.dataset.tab;
     document.getElementById('page-title').textContent = titulos[alvo];
-    ['slots', 'servicos', 'pedidos', 'usuarios', 'financeiro', 'afiliados'].forEach(t => {
-      document.getElementById('painel-' + t).style.display = t === alvo ? 'block' : 'none';
+    const sub = document.getElementById('page-sub');
+    if (sub) sub.textContent = subtitulos[alvo] || '';
+    ['resumo', 'slots', 'servicos', 'pedidos', 'usuarios', 'financeiro', 'afiliados'].forEach(t => {
+      const painel = document.getElementById('painel-' + t);
+      if (painel) painel.style.display = t === alvo ? 'block' : 'none';
     });
+    if (alvo === 'resumo') carregarResumo();
     if (alvo === 'slots') carregarSlots();
     if (alvo === 'servicos') carregarServicos();
     if (alvo === 'pedidos') carregarPedidosAdmin();
@@ -30,6 +75,42 @@ document.querySelectorAll('.side-link[data-tab]').forEach(link => {
     if (alvo === 'afiliados') { carregarAfiliados(); }
   });
 });
+
+async function carregarResumo() {
+  try {
+    const [mRes, pRes] = await Promise.all([
+      fetch('/api/admin/metricas'),
+      fetch('/api/admin/pedidos')
+    ]);
+    const mData = await mRes.json();
+    const pData = await pRes.json();
+    const m = mData.metricas || {};
+    document.getElementById('m-hoje').textContent = m.pedidosHoje ?? '—';
+    document.getElementById('m-rec7').textContent = 'R$ ' + centavosParaReais(m.receita7dCentavos || 0);
+    document.getElementById('m-ticket').textContent = 'ticket médio R$ ' + centavosParaReais(m.ticketMedio7dCentavos || 0);
+    document.getElementById('m-taxa').textContent = (m.taxaEntrega7d ?? 0) + '%';
+    document.getElementById('m-aguard').textContent = m.aguardando ?? '—';
+    document.getElementById('m-slots').textContent = 'slots livres ' + (m.slotsLivres ?? 0);
+    const body = document.getElementById('resumo-pedidos-body');
+    const recentes = (pData.pedidos || []).slice(0, 8);
+    if (!recentes.length) {
+      body.innerHTML = '<tr><td colspan="6" class="empty-state">Nenhum pedido ainda</td></tr>';
+    } else {
+      body.innerHTML = recentes.map(p => `
+        <tr>
+          <td>#${p.id}</td>
+          <td>${p.usuarioEmail || p.usuarioNome || '—'}</td>
+          <td>${p.servicoNome || '—'}</td>
+          <td style="font-family:var(--mono)">${p.numero || '—'}</td>
+          <td><span class="tag ${p.status}">${p.status}</span></td>
+          <td>${new Date(p.criadoEm).toLocaleString('pt-BR')}</td>
+        </tr>
+      `).join('');
+    }
+  } catch (_) {
+    toast('Falha ao carregar resumo', 'erro');
+  }
+}
 
 // ----- Slots -----
 const NOME_PAIS = { BR: 'Brasil', US: 'Estados Unidos', PT: 'Portugal', MX: 'México', AR: 'Argentina' };
@@ -271,22 +352,87 @@ document.getElementById('salvar-servico').addEventListener('click', async () => 
 });
 
 // ----- Pedidos -----
+function filtrarPedidosLista() {
+  const q = (document.getElementById('filtro-pedido-q')?.value || '').trim().toLowerCase();
+  const status = document.getElementById('filtro-pedido-status')?.value || '';
+  const periodo = document.getElementById('filtro-pedido-periodo')?.value || 'todos';
+  const agora = Date.now();
+  const inicioDia = new Date(); inicioDia.setHours(0, 0, 0, 0);
+  return todosPedidos.filter(p => {
+    if (status && p.status !== status) return false;
+    if (periodo === 'hoje' && new Date(p.criadoEm).getTime() < inicioDia.getTime()) return false;
+    if (periodo === '7d' && new Date(p.criadoEm).getTime() < agora - 7 * 86400000) return false;
+    if (periodo === '30d' && new Date(p.criadoEm).getTime() < agora - 30 * 86400000) return false;
+    if (!q) return true;
+    const blob = `#${p.id} ${p.usuarioNome || ''} ${p.usuarioEmail || ''} ${p.servicoNome || ''} ${p.numero || ''} ${p.codigo || ''}`.toLowerCase();
+    return blob.includes(q);
+  });
+}
+
+function renderPedidosAdmin() {
+  const lista = filtrarPedidosLista();
+  const totalPaginas = Math.max(1, Math.ceil(lista.length / PAGE_SIZE));
+  if (paginaPedidos > totalPaginas) paginaPedidos = totalPaginas;
+  const slice = lista.slice((paginaPedidos - 1) * PAGE_SIZE, paginaPedidos * PAGE_SIZE);
+  const body = document.getElementById('admin-pedidos-body');
+  if (!slice.length) {
+    body.innerHTML = '<tr><td colspan="9"><div class="empty-state"><h3>Nenhum pedido encontrado</h3><p>Ajuste a busca ou o filtro de status.</p></div></td></tr>';
+  } else {
+    body.innerHTML = slice.map(p => `
+      <tr>
+        <td>#${p.id}</td>
+        <td>${p.usuarioNome || ('usuário ' + p.userId)}<br><small style="color:var(--text-dim)">${p.usuarioEmail || ''}</small></td>
+        <td>${p.servicoNome}</td>
+        <td style="font-family:var(--mono)">${p.numero || '—'}</td>
+        <td><span class="tag ${p.status}">${p.status}</span></td>
+        <td style="font-family:var(--mono)">${p.codigo || '—'}</td>
+        <td style="font-family:var(--mono)">R$ ${centavosParaReais(p.precoPagoCentavos || 0)}</td>
+        <td>${new Date(p.criadoEm).toLocaleString('pt-BR')}</td>
+        <td style="white-space:nowrap;">
+          ${p.numero ? `<button class="btn btn-ghost btn-sm" onclick="copiarTexto('${String(p.numero).replace(/'/g, "\\'")}')">Copiar nº</button>` : ''}
+          ${p.codigo ? `<button class="btn btn-ghost btn-sm" onclick="copiarTexto('${String(p.codigo).replace(/'/g, "\\'")}')">Copiar cód.</button>` : ''}
+          ${p.status === 'aguardando' ? `<button class="btn btn-danger btn-sm" onclick="cancelarPedidoAdmin(${p.id})">Cancelar</button>` : ''}
+        </td>
+      </tr>
+    `).join('');
+  }
+  const pager = document.getElementById('pedidos-pager');
+  if (pager) {
+    pager.innerHTML = `
+      <span>${lista.length} pedido(s)</span>
+      <button class="btn btn-ghost btn-sm" ${paginaPedidos <= 1 ? 'disabled' : ''} onclick="paginaPedidos--; renderPedidosAdmin()">Anterior</button>
+      <span>${paginaPedidos}/${totalPaginas}</span>
+      <button class="btn btn-ghost btn-sm" ${paginaPedidos >= totalPaginas ? 'disabled' : ''} onclick="paginaPedidos++; renderPedidosAdmin()">Próxima</button>
+    `;
+  }
+}
+
 async function carregarPedidosAdmin() {
   const res = await fetch('/api/admin/pedidos');
   const data = await res.json();
-  document.getElementById('admin-pedidos-body').innerHTML = data.pedidos.map(p => `
-    <tr>
-      <td>#${p.id}</td>
-      <td>${p.usuarioNome || ('usuário ' + p.userId)}<br><small style="color:var(--muted)">${p.usuarioEmail || ''}</small></td>
-      <td>${p.servicoNome}</td>
-      <td style="font-family:var(--mono)">${p.numero}</td>
-      <td><span class="tag ${p.status}">${p.status}</span></td>
-      <td style="font-family:var(--mono)">${p.codigo || '—'}</td>
-      <td style="font-family:var(--mono)">R$ ${centavosParaReais(p.precoPagoCentavos || 0)}</td>
-      <td>${new Date(p.criadoEm).toLocaleString('pt-BR')}</td>
-    </tr>
-  `).join('');
+  todosPedidos = data.pedidos || [];
+  paginaPedidos = 1;
+  renderPedidosAdmin();
 }
+
+async function cancelarPedidoAdmin(id) {
+  if (!confirm('Cancelar pedido #' + id + ' e devolver o saldo ao cliente?')) return;
+  const res = await fetch('/api/admin/pedidos/' + id + '/cancelar', { method: 'POST' });
+  const data = await res.json();
+  if (!res.ok) return toast(data.erro || 'Falha ao cancelar', 'erro');
+  toast('Pedido cancelado e saldo devolvido');
+  carregarPedidosAdmin();
+  carregarResumo();
+}
+
+['filtro-pedido-q', 'filtro-pedido-status', 'filtro-pedido-periodo'].forEach(id => {
+  const el = document.getElementById(id);
+  if (!el) return;
+  el.addEventListener(id === 'filtro-pedido-q' ? 'input' : 'change', () => {
+    paginaPedidos = 1;
+    renderPedidosAdmin();
+  });
+});
 
 // ----- Saldo 5SIM -----
 async function carregarSaldo5sim() {
@@ -359,10 +505,17 @@ async function marcarComissaoPaga(id) {
 // ----- Usuários -----
 let usuarioParaRedefinir = null;
 let usuarioParaRetirar = null;
-async function carregarUsuarios() {
-  const res = await fetch('/api/admin/usuarios');
-  const data = await res.json();
-  document.getElementById('usuarios-body').innerHTML = data.usuarios.map(u => `
+
+function renderUsuarios() {
+  const q = (document.getElementById('filtro-usuario-q')?.value || '').trim().toLowerCase();
+  const lista = todosUsuarios.filter(u => {
+    if (!q) return true;
+    return `${u.nome || ''} ${u.email || ''}`.toLowerCase().includes(q);
+  });
+  const totalPaginas = Math.max(1, Math.ceil(lista.length / PAGE_SIZE));
+  if (paginaUsuarios > totalPaginas) paginaUsuarios = totalPaginas;
+  const slice = lista.slice((paginaUsuarios - 1) * PAGE_SIZE, paginaUsuarios * PAGE_SIZE);
+  document.getElementById('usuarios-body').innerHTML = slice.map(u => `
     <tr>
       <td>${u.nome}</td>
       <td>${u.email}</td>
@@ -376,7 +529,32 @@ async function carregarUsuarios() {
         <button class="btn btn-ghost btn-sm" style="color:var(--red)" onclick="excluirUsuario(${u.id}, '${u.nome.replace(/'/g, "\\'")}')">Excluir</button>
       </td>
     </tr>
-  `).join('');
+  `).join('') || '<tr><td colspan="5"><div class="empty-state"><h3>Nenhum usuário</h3></div></td></tr>';
+  const pager = document.getElementById('usuarios-pager');
+  if (pager) {
+    pager.innerHTML = `
+      <span>${lista.length} usuário(s)</span>
+      <button class="btn btn-ghost btn-sm" ${paginaUsuarios <= 1 ? 'disabled' : ''} onclick="paginaUsuarios--; renderUsuarios()">Anterior</button>
+      <span>${paginaUsuarios}/${totalPaginas}</span>
+      <button class="btn btn-ghost btn-sm" ${paginaUsuarios >= totalPaginas ? 'disabled' : ''} onclick="paginaUsuarios++; renderUsuarios()">Próxima</button>
+    `;
+  }
+}
+
+async function carregarUsuarios() {
+  const res = await fetch('/api/admin/usuarios');
+  const data = await res.json();
+  todosUsuarios = data.usuarios || [];
+  paginaUsuarios = 1;
+  renderUsuarios();
+}
+
+const filtroUsuario = document.getElementById('filtro-usuario-q');
+if (filtroUsuario) {
+  filtroUsuario.addEventListener('input', () => {
+    paginaUsuarios = 1;
+    renderUsuarios();
+  });
 }
 
 async function tornarAfiliado(id) {
@@ -509,7 +687,7 @@ document.getElementById('btn-sair').addEventListener('click', async (e) => {
 (async function init() {
   const user = await verificarAdmin();
   if (!user) return;
-  carregarSlots();
+  carregarResumo();
 })();
 
 let alarmeContinuoAtivo = null;
