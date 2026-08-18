@@ -1093,7 +1093,23 @@ setInterval(async function verificarSmsSmsman() {
   } catch (e) { console.error('Erro no poller SMS-Man:', e.message); }
 }, 15000);
 
+function ensureAdmin() {
+  transact((db) => {
+    if (db.users.some((u) => u.isAdmin)) return;
+    db.users.push({
+      id: nextId(db, 'users'),
+      nome: 'Admin',
+      email: 'admin@seusite.com.br',
+      senhaHash: hashPassword('admin123'),
+      saldoCentavos: 0,
+      isAdmin: true,
+      criadoEm: new Date().toISOString()
+    });
+  });
+}
+
 server.listen(PORT, () => {
+  try { ensureAdmin(); } catch (e) { console.error('Falha ao criar admin:', e); }
   console.log(`\n✅  Servidor rodando em http://localhost:${PORT}`);
   console.log(`   Admin padrão: admin@seusite.com.br / admin123 (troque a senha!)\n`);
 });
