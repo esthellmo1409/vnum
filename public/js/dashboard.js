@@ -564,7 +564,7 @@ document.getElementById('link-afiliado').addEventListener('click', async (e) => 
   try {
     const res = await fetch('/api/afiliado');
     const data = await res.json();
-    const link = window.location.origin + '/?ref=' + data.codigoAfiliado;
+    const link = window.location.origin + '/cadastro.html?ref=' + encodeURIComponent(data.codigoAfiliado);
     document.getElementById('afiliado-link').value = link;
     document.getElementById('afiliado-indicados').textContent = data.pessoasIndicadas || 0;
     document.getElementById('afiliado-cadastros').textContent = data.cadastros || 0;
@@ -587,6 +587,8 @@ document.getElementById('link-afiliado').addEventListener('click', async (e) => 
     document.getElementById('btn-share-wa').href = 'https://wa.me/?text=' + encodeURIComponent(msgEl.value);
     const qr = document.getElementById('afiliado-qr');
     qr.src = 'https://api.qrserver.com/v1/create-qr-code/?size=160x160&data=' + encodeURIComponent(link);
+    const qrLink = document.getElementById('afiliado-qr-link');
+    if (qrLink) qrLink.href = link;
     const corpo = document.getElementById('afiliado-vendas-body');
     if (corpo) {
       corpo.innerHTML = (data.historico || data.vendas || []).map(v => `
