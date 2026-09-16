@@ -17,7 +17,9 @@ if (formLogin) {
       });
       const data = await res.json();
       if (!res.ok) return mostrarMsg(data.erro || 'Não foi possível entrar.', 'erro');
-      window.location.href = data.usuario.isAdmin ? '/admin.html' : '/dashboard.html';
+      if (window.simsmsTrack) window.simsmsTrack('page_view');
+      const next = new URLSearchParams(window.location.search).get('next');
+      window.location.href = data.usuario.isAdmin ? '/admin.html' : (next || '/dashboard.html');
     } catch (e) {
       mostrarMsg('Erro de conexão. Tente novamente.', 'erro');
     }
@@ -39,7 +41,11 @@ if (formCadastro) {
       });
       const data = await res.json();
       if (!res.ok) return mostrarMsg(data.erro || 'Não foi possível criar a conta.', 'erro');
-      window.location.href = '/dashboard.html';
+      if (window.simsmsTrack) window.simsmsTrack('signup');
+      const q = new URLSearchParams(window.location.search);
+      const next = q.get('next');
+      const servico = q.get('servico');
+      window.location.href = next || (servico ? ('/dashboard.html?comprar=' + encodeURIComponent(servico)) : '/dashboard.html');
     } catch (e) {
       mostrarMsg('Erro de conexão. Tente novamente.', 'erro');
     }

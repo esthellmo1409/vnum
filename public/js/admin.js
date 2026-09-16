@@ -91,6 +91,15 @@ async function carregarResumo() {
     document.getElementById('m-taxa').textContent = (m.taxaEntrega7d ?? 0) + '%';
     document.getElementById('m-aguard').textContent = m.aguardando ?? '—';
     document.getElementById('m-slots').textContent = 'slots livres ' + (m.slotsLivres ?? 0);
+    const conv = m.conversao || {};
+    const elUsers = document.getElementById('m-users');
+    if (elUsers) elUsers.textContent = String(m.usuarios ?? conv.clientesNovos7d ?? '—');
+    const elDep = document.getElementById('m-dep');
+    if (elDep) elDep.textContent = 'R$ ' + centavosParaReais(conv.depositos7dCentavos || 0);
+    const elRec = document.getElementById('m-rec');
+    if (elRec) elRec.textContent = (conv.clientesNovos7d || 0) + ' / ' + (conv.clientesRecorrentes || 0);
+    const elTop = document.getElementById('m-top');
+    if (elTop) elTop.textContent = conv.servicoMaisVendido ? conv.servicoMaisVendido[0] : '—';
     const body = document.getElementById('resumo-pedidos-body');
     const recentes = (pData.pedidos || []).slice(0, 8);
     if (!recentes.length) {
@@ -718,6 +727,15 @@ async function carregarConfiguracoes() {
   const data = await res.json();
   document.getElementById("config-multiplicador").value = data.configuracoes.multiplicador5sim;
   document.getElementById("config-margem").value = (data.configuracoes.margemFixaCentavos/100).toFixed(2);
+  const b = data.configuracoes.bonusPrimeiraRecarga || {};
+  const bonusAtivo = document.getElementById("bonus-ativo");
+  if (bonusAtivo) {
+    bonusAtivo.checked = !!b.ativo;
+    document.getElementById("bonus-min").value = ((b.minimoDepositoCentavos || 0) / 100).toFixed(0);
+    document.getElementById("bonus-valor").value = ((b.bonusCentavos || 0) / 100).toFixed(0);
+    document.getElementById("bonus-dias").value = b.validadeDias || 0;
+    document.getElementById("bonus-servicos").value = (b.servicosIds || []).join(',');
+  }
 }
 document.getElementById("btn-salvar-config").addEventListener("click", async function() {
   const multiplicador5sim = document.getElementById("config-multiplicador").value;
@@ -725,3 +743,35 @@ document.getElementById("btn-salvar-config").addEventListener("click", async fun
   await fetch("/api/admin/configuracoes", { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ multiplicador5sim: multiplicador5sim, margemFixaCentavos: margemFixaCentavos }) });
   alert("Configuracoes salvas!");
 });
+const btnBonus = document.getElementById("btn-salvar-bonus");
+if (btnBonus) btnBonus.addEventListener("click", async function() {
+  const ids = (document.getElementById("bonus-servicos").value || "").split(",").map(function(x){ return Number(x.trim()); }).filter(Boolean);
+  await fetch("/api/admin/configuracoes", { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({
+    bonusPrimeiraRecarga: {
+      ativo: document.getElementById("bonus-ativo").checked,
+      minimoDepositoCentavos: Math.round(Number(document.getElementById("bonus-min").value || 0) * 100),
+      bonusCentavos: Math.round(Number(document.getElementById("bonus-valor").value || 0) * 100),
+      validadeDias: Number(document.getElementById("bonus-dias").value || 0),
+      servicosIds: ids
+    }
+  }) });
+  alert("Bônus salvo. Só vale na primeira recarga se estiver ativo e com valor maior que zero.");
+});
+async function carregarCupons() {
+  const el = document.getElementById("cupons-lista");
+  if (!el) return;
+  const res = await fetch("/api/admin/cupons");
+  const data = await res.json();
+  el.innerHTML = (data.cupons || []).map(function(c) {
+    return c.codigo + " — R$ " + (c.bonusCentavos/100).toFixed(2) + (c.ativo ? " (ativo)" : " (off)");
+  }).join("<br>") || "Nenhum cupom.";
+}
+const btnCupom = document.getElementById("btn-criar-cupom");
+if (btnCupom) btnCupom.addEventListener("click", async function() {
+  await fetch("/api/admin/cupons", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({
+    codigo: document.getElementById("cupom-codigo").value,
+    bonusCentavos: Math.round(Number(document.getElementById("cupom-bonus").value || 0) * 100)
+  }) });
+  carregarCupons();
+});
+carregarCupons();

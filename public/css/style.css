@@ -512,3 +512,55 @@ td { padding: 12px; border-bottom: 1px solid var(--border); color: var(--text); 
 .service-row-preco { color: #2851d8; font-weight: 600; font-size: 14px; white-space: nowrap; }
 
 #services-grid .price { display: none; }
+
+.sr-only { position:absolute; width:1px; height:1px; overflow:hidden; clip:rect(0,0,0,0); }
+.hero-sell { padding: 48px 0 32px; }
+.hero-sell h1 { font-size: 40px; line-height: 1.12; max-width: 16ch; }
+.hero-sell-grid { display: grid; grid-template-columns: 1.4fr 0.8fr; gap: 40px; align-items: start; }
+.trust-row { display: flex; flex-wrap: wrap; gap: 8px; list-style: none; padding: 0; margin: 22px 0 0; }
+.trust-row li { font-size: 12px; font-weight: 600; border: 1px solid var(--border); background: var(--surface); padding: 6px 10px; border-radius: 100px; color: var(--text-dim); }
+.live-panel { border: 1px solid var(--border); border-radius: 16px; padding: 18px 20px; background: #fff; }
+.live-title { font-size: 12px; font-weight: 600; color: var(--text-dim); margin: 0 0 10px; text-transform: uppercase; letter-spacing: .04em; }
+.live-panel ul { list-style: none; padding: 0; margin: 0; }
+.live-panel li { display: flex; align-items: center; gap: 8px; font-size: 14px; padding: 6px 0; }
+.ok-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--success); display: inline-block; }
+.bonus-banner { background: var(--primary-dim); border-top: 1px solid var(--border); border-bottom: 1px solid var(--border); padding: 14px 0; font-size: 14px; }
+.catalog-search input { width: 100%; font-size: 16px; padding: 14px 16px; border: 1px solid var(--border); border-radius: 12px; margin-bottom: 14px; }
+.cat-filters { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 18px; }
+.cat-chip { border: 1px solid var(--border); background: #fff; border-radius: 100px; padding: 8px 12px; font-size: 13px; cursor: pointer; font-family: inherit; }
+.cat-chip.on { background: var(--primary); color: #fff; border-color: var(--primary); }
+.catalog-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 12px; }
+.svc-card { border: 1px solid var(--border); border-radius: 14px; padding: 14px; background: #fff; display: flex; flex-direction: column; gap: 12px; }
+.svc-card-top { display: flex; gap: 10px; align-items: center; }
+.svc-card h3 { margin: 0; font-size: 16px; }
+.svc-meta { margin: 2px 0 0; font-size: 12px; color: var(--text-dim); }
+.svc-card-bottom { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.svc-card-bottom .btn { margin-left: auto; min-height: 40px; }
+.footer-links { display: flex; justify-content: space-between; gap: 16px; flex-wrap: wrap; font-size: 13px; }
+.footer-links nav { display: flex; flex-wrap: wrap; gap: 12px; }
+.seo-article { max-width: 720px; padding-bottom: 48px; }
+.seo-article p { color: var(--text-dim); }
+.dash-kpis { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: 18px; }
+.pack-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-bottom: 12px; }
+.pack-btn { border: 1px solid var(--border); background: #fff; border-radius: 10px; padding: 10px 8px; cursor: pointer; font-family: inherit; font-weight: 600; }
+.pack-btn.selecionado { border-color: var(--primary); background: var(--primary-dim); }
+.mobile-dock { display: none; }
+.confirm-meta { font-size: 14px; color: var(--text-dim); margin: 0 0 8px; }
+#pedido-sms.bubble { opacity: 1; animation: none; }
+@media (max-width: 860px) {
+  .hero-sell-grid, .dash-kpis, .pack-grid { grid-template-columns: 1fr 1fr; }
+  .hero-sell h1 { font-size: 28px; }
+  .nav-links { display: none; }
+  .mobile-dock {
+    display: flex; position: fixed; bottom: 0; left: 0; right: 0; z-index: 80;
+    background: #fff; border-top: 1px solid var(--border);
+    padding: 8px 10px calc(8px + env(safe-area-inset-bottom));
+    justify-content: space-around;
+  }
+  .mobile-dock a, .mobile-dock button {
+    background: none; border: none; font-size: 11px; font-weight: 600; color: var(--text);
+    display: flex; flex-direction: column; align-items: center; gap: 2px; font-family: inherit; cursor: pointer;
+    text-decoration: none; min-width: 64px;
+  }
+  body.has-dock { padding-bottom: 72px; }
+}

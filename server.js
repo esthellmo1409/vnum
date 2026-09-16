@@ -10,6 +10,8 @@ const { hashPassword, verifyPassword, newToken } = require('./lib/auth');
 const mp = require('./lib/mercadopago');
 const sim5 = require('./lib/5sim');
 const smsman = require('./lib/smsman');
+const funil = require('./lib/funil');
+const seoPages = require('./lib/seo-pages');
 
 function calcularPrecoVendaCentavos(custoReaisCentavos, db) {
   const config = (db && db.configuracoes) || {};
@@ -161,6 +163,19 @@ function extrairDDD(numero) {
   return m ? m[1] : null;
 }
 
+function registrarEvento(db, evento, extra) {
+  if (!db.eventos) db.eventos = [];
+  if (!db._seq.eventos) db._seq.eventos = 1;
+  db.eventos.push({
+    id: nextId(db, 'eventos'),
+    evento: String(evento || '').slice(0, 40),
+    userId: extra && extra.userId || null,
+    servicoId: extra && extra.servicoId || null,
+    em: new Date().toISOString()
+  });
+  if (db.eventos.length > 5000) db.eventos = db.eventos.slice(-4000);
+}
+
 // ---------- Servir arquivos estáticos de /public ----------
 const MIME = {
   '.html': 'text/html; charset=utf-8',
@@ -172,6 +187,21 @@ const MIME = {
 };
 
 function serveStatic(req, res, pathname) {
+  const seoHtml = seoPages.render(pathname);
+  if (seoHtml) {
+    res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
+    return res.end(seoHtml);
+  }
+  if (pathname === '/robots.txt') {
+    res.writeHead(200, { 'Content-Type': 'text/plain; charset=utf-8' });
+    return res.end('User-agent: *\nAllow: /\nSitemap: https://www.simsms.com.br/sitemap.xml\n');
+  }
+  if (pathname === '/sitemap.xml') {
+    const urls = ['/', '/login.html', '/cadastro.html', ...Object.keys(seoPages.PAGES)]
+      .map((u) => `  <url><loc>https://www.simsms.com.br${u}</loc></url>`).join('\n');
+    res.writeHead(200, { 'Content-Type': 'application/xml; charset=utf-8' });
+    return res.end(`<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${urls}\n</urlset>`);
+  }
   let filePath = pathname === '/' ? '/index.html' : pathname;
   filePath = path.join(__dirname, 'public', filePath);
   const publicRoot = path.join(__dirname, 'public');
@@ -219,6 +249,7 @@ async function api(req, res, pathname, method) {
         if (afiliadoRef) user.indicadoPor = afiliadoRef.id;
       }
       db.users.push(user);
+      registrarEvento(db, 'signup', { userId: user.id });
       const token = newToken();
       sessions.set(token, user.id);
       res.setHeader('Set-Cookie', `sessao=${token}; HttpOnly; Path=/; SameSite=Lax; Max-Age=2592000`);
@@ -319,9 +350,35 @@ async function api(req, res, pathname, method) {
     }
   }
 
+  if (pathname === '/api/eventos' && method === 'POST') {
+    const body = await readBody(req);
+    const permitido = [
+      'page_view', 'service_view', 'click_buy', 'signup',
+      'pix_started', 'pix_paid', 'activation_started', 'sms_received',
+      'activation_cancelled', 'refund', 'second_purchase'
+    ];
+    if (!permitido.includes(body && body.evento)) {
+      return sendJson(res, 400, { erro: 'Evento inválido.' });
+    }
+    const u = getUser(req);
+    transact((db) => {
+      registrarEvento(db, body.evento, { userId: u ? u.id : null, servicoId: body.servicoId || null });
+    });
+    return sendJson(res, 200, { ok: true });
+  }
+
+  if (pathname === '/api/publico' && method === 'GET') {
+    const db = load();
+    return sendJson(res, 200, funil.snapshotPublico(db, { pixAutomatico: !!process.env.MP_ACCESS_TOKEN }));
+  }
+
   if (pathname === '/api/catalogo' && method === 'GET') {
     const db = load();
-    return sendJson(res, 200, { servicos: db.services.filter((s) => s.ativo) });
+    const servicos = db.services.filter((s) => s.ativo).map((s) => Object.assign({}, s, {
+      categoria: s.categoria || funil.categoriaServico(s.nome),
+      pais: s.pais || 'BR'
+    }));
+    return sendJson(res, 200, { servicos });
   }
 
   // ----- CARTEIRA / SALDO -----
@@ -509,6 +566,9 @@ async function api(req, res, pathname, method) {
         }
       }
       db.orders.push(order);
+      registrarEvento(db, 'activation_started', { userId: user.id, servicoId: servico.id });
+      const comprasAnteriores = db.orders.filter((o) => o.userId === user.id && o.id !== order.id && o.status !== 'cancelado').length;
+      if (comprasAnteriores >= 1) registrarEvento(db, 'second_purchase', { userId: user.id, servicoId: servico.id });
       return sendJson(res, 201, { pedido: order, saldoCentavos: u.saldoCentavos });
     });
   }
@@ -619,6 +679,7 @@ async function api(req, res, pathname, method) {
           id: txId, userId: user.id, valorCentavos: Math.round(valorReais * 100),
           metodo: 'pix', status: pix.status, mpPaymentId: pix.paymentId, criadoEm: new Date().toISOString()
         });
+        registrarEvento(db2, 'pix_started', { userId: user.id });
       });
       return sendJson(res, 201, { transacaoId: txId, qrCode: pix.qrCode, qrCodeBase64: pix.qrCodeBase64, paymentId: pix.paymentId });
     } catch (e) {
@@ -663,10 +724,9 @@ async function api(req, res, pathname, method) {
         const pagamento = await mp.consultarPagamento(paymentId);
         transact((db) => {
           const tx = db.transactions.find((t) => t.mpPaymentId == paymentId || t.mpPreferenceId === pagamento.preference_id);
-          if (tx && tx.status !== 'aprovado' && pagamento.status === 'approved') {
-            tx.status = 'aprovado';
-            const u = db.users.find((x) => x.id === tx.userId);
-            if (u) u.saldoCentavos += tx.valorCentavos;
+          if (tx && pagamento.status === 'approved') {
+            const r = funil.aplicarCreditoAprovado(db, tx);
+            if (!r.jaAplicado) registrarEvento(db, 'pix_paid', { userId: tx.userId });
           } else if (tx) {
             tx.status = pagamento.status;
           }
@@ -702,10 +762,9 @@ async function api(req, res, pathname, method) {
         const tx = db.transactions.find((t) => t.id === txId && t.userId === user.id);
         if (!tx) return { status: 'nao_encontrado' };
         if (tx.status !== 'aprovado' && pagamento.status === 'approved') {
-          tx.status = 'aprovado';
-          const u = db.users.find((x) => x.id === tx.userId);
-          if (u) u.saldoCentavos += tx.valorCentavos;
-          return { status: 'aprovado', saldoCentavos: u ? u.saldoCentavos : undefined };
+          const r = funil.aplicarCreditoAprovado(db, tx);
+          if (!r.jaAplicado) registrarEvento(db, 'pix_paid', { userId: tx.userId });
+          return { status: 'aprovado', saldoCentavos: r.saldoCentavos, bonusCentavos: r.bonusCentavos };
         }
         tx.status = pagamento.status;
         return { status: pagamento.status };
@@ -822,7 +881,8 @@ async function api(req, res, pathname, method) {
           ticketMedio7dCentavos: d7.length ? Math.round(receita(d7) / d7.length) : 0,
           slotsLivres,
           aguardando,
-          usuarios: (db.users || []).filter((u) => !u.isAdmin).length
+          usuarios: (db.users || []).filter((u) => !u.isAdmin).length,
+          conversao: funil.metricasConversao(db)
         }
       });
     }
@@ -891,14 +951,40 @@ async function api(req, res, pathname, method) {
 
     if (pathname === '/api/admin/configuracoes' && method === 'GET') {
       const db = load();
-      const config = db.configuracoes || { multiplicador5sim: 5, margemFixaCentavos: 100 };
+      const config = funil.mergeConfiguracoes(db.configuracoes);
       return sendJson(res, 200, { configuracoes: config });
     }
     if (pathname === '/api/admin/configuracoes' && method === 'PUT') {
       const body = await readBody(req);
       return transact((db) => {
-        db.configuracoes = { multiplicador5sim: Number(body.multiplicador5sim) || 5, margemFixaCentavos: Math.round(Number(body.margemFixaCentavos)) || 100 };
+        const atual = funil.mergeConfiguracoes(db.configuracoes);
+        db.configuracoes = funil.mergeConfiguracoes(Object.assign({}, atual, body, {
+          bonusPrimeiraRecarga: Object.assign({}, atual.bonusPrimeiraRecarga, body.bonusPrimeiraRecarga || {})
+        }));
         return sendJson(res, 200, { configuracoes: db.configuracoes });
+      });
+    }
+    if (pathname === '/api/admin/cupons' && method === 'GET') {
+      const db = load();
+      return sendJson(res, 200, { cupons: db.cupons || [] });
+    }
+    if (pathname === '/api/admin/cupons' && method === 'POST') {
+      const body = await readBody(req);
+      const codigo = String(body.codigo || '').trim().toUpperCase();
+      if (!codigo) return sendJson(res, 400, { erro: 'Informe o código do cupom.' });
+      return transact((db) => {
+        if (!db.cupons) db.cupons = [];
+        if (!db._seq.cupons) db._seq.cupons = 1;
+        if (db.cupons.find((c) => c.codigo === codigo)) return sendJson(res, 409, { erro: 'Cupom já existe.' });
+        const cupom = {
+          id: nextId(db, 'cupons'),
+          codigo,
+          bonusCentavos: Math.max(0, Math.round(Number(body.bonusCentavos) || 0)),
+          ativo: body.ativo !== false,
+          criadoEm: new Date().toISOString()
+        };
+        db.cupons.push(cupom);
+        return sendJson(res, 201, { cupom });
       });
     }
     if (pathname === '/api/admin/financeiro' && method === 'GET') {
@@ -1064,6 +1150,7 @@ setInterval(async function verificarSms5sim() {
               o2.status = 'recebido';
               o2.codigo = ultimoSms.code || extrairCodigo(texto) || null;
               o2.mensagemRecebida = texto || (o2.codigo ? ('Código: ' + o2.codigo) : 'SMS recebido');
+              registrarEvento(db2, 'sms_received', { userId: o2.userId, servicoId: o2.servicoId });
             }
           });
         }

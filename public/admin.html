@@ -33,6 +33,10 @@
         <div class="metric-card"><div class="label">Receita 7 dias</div><div class="value" id="m-rec7">—</div><div class="hint" id="m-ticket">ticket médio —</div></div>
         <div class="metric-card"><div class="label">Taxa de entrega (7d)</div><div class="value" id="m-taxa">—</div></div>
         <div class="metric-card"><div class="label">Aguardando SMS</div><div class="value" id="m-aguard">—</div><div class="hint" id="m-slots">slots livres —</div></div>
+        <div class="metric-card"><div class="label">Clientes</div><div class="value" id="m-users">—</div></div>
+        <div class="metric-card"><div class="label">Depósitos 7d</div><div class="value" id="m-dep">—</div></div>
+        <div class="metric-card"><div class="label">Novos / recorrentes</div><div class="value" id="m-rec">—</div></div>
+        <div class="metric-card"><div class="label">Mais vendido</div><div class="value" id="m-top" style="font-size:18px;">—</div></div>
       </div>
       <div class="table-wrap">
         <table>
@@ -106,6 +110,23 @@
         <div><label style="display:block; font-size:12px; margin-bottom:4px;">Multiplicador sobre custo</label><input type="number" id="config-multiplicador" step="0.1" style="width:100px;"></div>
         <div><label style="display:block; font-size:12px; margin-bottom:4px;">Margem fixa (R$)</label><input type="number" id="config-margem" step="0.01" style="width:100px;"></div>
         <button class="btn btn-teal btn-sm" id="btn-salvar-config">Salvar</button>
+      </div>
+      <div style="display:grid; grid-template-columns:repeat(2,1fr); gap:12px; margin-bottom:20px; padding:12px; background:var(--surface-2); border-radius:8px;">
+        <label style="font-size:13px;"><input type="checkbox" id="bonus-ativo"> Bônus de primeira recarga ativo</label>
+        <div><label style="display:block; font-size:12px;">Depósito mínimo (R$)</label><input type="number" id="bonus-min" step="1"></div>
+        <div><label style="display:block; font-size:12px;">Bônus (R$)</label><input type="number" id="bonus-valor" step="1"></div>
+        <div><label style="display:block; font-size:12px;">Validade (dias após cadastro)</label><input type="number" id="bonus-dias" step="1"></div>
+        <div style="grid-column:1/-1;"><label style="display:block; font-size:12px;">IDs de serviços participantes (opcional, separados por vírgula)</label><input type="text" id="bonus-servicos" placeholder="ex: 1,2,5"></div>
+        <button class="btn btn-teal btn-sm" id="btn-salvar-bonus" type="button">Salvar bônus</button>
+      </div>
+      <div style="margin-bottom:20px; padding:12px; background:var(--surface-2); border-radius:8px;">
+        <strong>Cupons</strong>
+        <div style="display:flex; gap:8px; margin:8px 0;">
+          <input id="cupom-codigo" placeholder="CODIGO" style="width:140px;">
+          <input id="cupom-bonus" type="number" placeholder="Bônus R$" style="width:120px;">
+          <button class="btn btn-ghost btn-sm" type="button" id="btn-criar-cupom">Criar cupom</button>
+        </div>
+        <div id="cupons-lista" style="font-size:13px;"></div>
       </div>
       <div class="table-wrap">
         <table>

@@ -47,6 +47,8 @@ function atualizarSaldoUI(saldoCentavos) {
   const texto = 'R$ ' + centavosParaReais(saldoCentavos);
   document.getElementById('saldo').textContent = texto;
   document.getElementById('user-menu-saldo').textContent = texto;
+  const kpi = document.getElementById('kpi-saldo');
+  if (kpi) kpi.textContent = texto;
 }
 
 async function verificarSessao() {
@@ -248,7 +250,7 @@ async function carregarCatalogo() {
     lista.innerHTML = '<div style="padding:24px 12px; text-align:center; color:var(--muted);">O estoque desse país muda com frequência. Nada disponível agora — tente atualizar em alguns segundos.<br><button class="btn btn-ghost btn-sm" style="margin-top:10px;" onclick="carregarCatalogo()">Atualizar</button></div>';
   } else {
     lista.innerHTML = servicosParaMostrar.map(s => `
-      <div class="service-row" onclick="comprarNumero(${s.id}, null, ${s.precoCentavos})">
+      <div class="service-row" onclick="pedirCompra(${s.id}, null, ${s.precoCentavos})">
         ${htmlIconeServico(s.nome, 'service-row-icon')}
         <span class="service-row-nome">${s.nome}</span>
         <span class="service-row-preco">R$ ${centavosParaReais(s.precoCentavos)}</span>
@@ -269,6 +271,24 @@ function preencherPrecosAtalho() {
   preencherPreco('atalho-preco-ddd', buscarServicoPorNome(['escolher']));
 }
 
+let compraPendente = null;
+function pedirCompra(servicoId, ddd, precoEsperadoCentavos) {
+  const servico = servicosCarregados.find((s) => s.id === servicoId) || { id: servicoId, nome: 'Serviço' };
+  compraPendente = { servicoId, ddd, precoEsperadoCentavos, nome: servico.nome };
+  if (window.simsmsTrack) window.simsmsTrack('click_buy', { servicoId: servicoId });
+  document.getElementById('conf-servico').textContent = 'Serviço: ' + servico.nome;
+  document.getElementById('conf-pais').textContent = 'País: ' + (paisSelecionado || 'BR');
+  document.getElementById('conf-preco').textContent = 'Preço: R$ ' + centavosParaReais(precoEsperadoCentavos);
+  document.getElementById('modal-confirmar').classList.add('show');
+}
+window.pedirCompra = pedirCompra;
+
+document.getElementById('btn-confirmar-compra').addEventListener('click', () => {
+  if (!compraPendente) return;
+  document.getElementById('modal-confirmar').classList.remove('show');
+  comprarNumero(compraPendente.servicoId, compraPendente.ddd, compraPendente.precoEsperadoCentavos);
+});
+
 async function comprarNumero(servicoId, ddd, precoEsperadoCentavos) {
   const res = await fetch('/api/pedidos', {
     method: 'POST', headers: { 'Content-Type': 'application/json' },
@@ -287,6 +307,7 @@ async function comprarNumero(servicoId, ddd, precoEsperadoCentavos) {
     return;
   }
   atualizarSaldoUI(data.saldoCentavos);
+  if (window.simsmsTrack) window.simsmsTrack('activation_started', { servicoId: servicoId });
   abrirModalPedido(data.pedido);
   carregarHistorico();
 }
@@ -360,6 +381,7 @@ function atualizarStatusPedidoUI(pedido) {
       };
     }
     tocarSomCodigoRecebido();
+    if (window.simsmsTrack) window.simsmsTrack('sms_received');
     clearInterval(pollTimer);
     clearInterval(contadorTimer);
   } else if (pedido.status === 'expirado') {
@@ -405,6 +427,7 @@ async function carregarHistorico() {
   if (!data.pedidos.length) {
     body.innerHTML = '';
     vazio.style.display = 'block';
+    atualizarKpis([], 0);
     return;
   }
   vazio.style.display = 'none';
@@ -423,6 +446,38 @@ async function carregarHistorico() {
     btn.addEventListener('click', () => {
       const pedido = data.pedidos.find((x) => String(x.id) === String(btn.dataset.abrirPedido));
       if (pedido) abrirModalPedido(pedido);
+    });
+  });
+  atualizarKpis(data.pedidos);
+}
+
+function atualizarKpis(pedidos) {
+  const ok = pedidos.filter((p) => p.status === 'recebido');
+  const kpiA = document.getElementById('kpi-ativacoes');
+  const kpiU = document.getElementById('kpi-ultima');
+  const kpiF = document.getElementById('kpi-fav');
+  if (kpiA) kpiA.textContent = String(ok.length);
+  if (kpiU) kpiU.textContent = pedidos[0] ? pedidos[0].servicoNome : '—';
+  const cont = {};
+  ok.forEach((p) => { cont[p.servicoNome] = (cont[p.servicoNome] || 0) + 1; });
+  const fav = Object.entries(cont).sort((a, b) => b[1] - a[1])[0];
+  if (kpiF) kpiF.textContent = fav ? fav[0] : '—';
+  const box = document.getElementById('recompra-box');
+  const list = document.getElementById('recompra-list');
+  if (!box || !list) return;
+  const usados = [];
+  pedidos.forEach((p) => {
+    if (!usados.find((x) => x.servicoId === p.servicoId)) usados.push(p);
+  });
+  if (!usados.length) { box.style.display = 'none'; return; }
+  box.style.display = 'block';
+  list.innerHTML = usados.slice(0, 6).map((p) =>
+    `<button type="button" class="btn btn-ghost btn-sm" data-rep="${p.servicoId}">Repetir ${p.servicoNome}</button>`
+  ).join('');
+  list.querySelectorAll('[data-rep]').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      const s = servicosCarregados.find((x) => String(x.id) === String(btn.dataset.rep));
+      if (s) pedirCompra(s.id, null, s.precoCentavos);
     });
   });
 }
@@ -620,7 +675,9 @@ document.getElementById('btn-pix').addEventListener('click', async () => {
           const dataCarteira = await resCarteira.json();
           atualizarSaldoUI(dataCarteira.saldoCentavos);
         }
-        alert('Pagamento confirmado! Saldo creditado.');
+        const extra = dataVerif.bonusCentavos ? ' Bônus de R$ ' + centavosParaReais(dataVerif.bonusCentavos) + ' creditado.' : '';
+        alert('Saldo atualizado.' + extra);
+        document.getElementById('catalogo-col-anchor').scrollIntoView({ behavior: 'smooth' });
       }
     } catch (e) {}
   }, 3000);
@@ -649,10 +706,42 @@ document.getElementById('btn-sair').addEventListener('click', async (e) => {
 });
 
 (async function init() {
+  document.body.classList.add('has-dock');
   const user = await verificarSessao();
   if (!user) return;
   renderizarPaises();
   await carregarCatalogo();
   carregarHistorico();
   revelarLinkAfiliadoSeAplicavel();
+  if (window.simsmsTrack) window.simsmsTrack('page_view');
+  try {
+    const pub = await fetch('/api/publico').then((r) => r.json());
+    if (pub.bonus && pub.bonus.ativo) {
+      const el = document.getElementById('bonus-dash');
+      if (el) {
+        el.hidden = false;
+        el.textContent = 'Novo cliente: depósito a partir de R$ ' + centavosParaReais(pub.bonus.minimoDepositoCentavos) + ' pode receber R$ ' + centavosParaReais(pub.bonus.bonusCentavos) + ' de bônus.';
+      }
+      const hint = document.getElementById('bonus-recarga-hint');
+      if (hint) hint.textContent = 'Bônus de boas-vindas ativo acima de R$ ' + centavosParaReais(pub.bonus.minimoDepositoCentavos) + '.';
+    }
+  } catch (e) {}
+  document.querySelectorAll('.pack-btn').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.pack-btn').forEach((b) => b.classList.remove('selecionado'));
+      btn.classList.add('selecionado');
+      document.getElementById('valor-recarga').value = btn.dataset.valor;
+    });
+  });
+  const dockSaldo = document.getElementById('dock-saldo');
+  if (dockSaldo) dockSaldo.addEventListener('click', () => document.getElementById('modal-recarga').classList.add('show'));
+  const params = new URLSearchParams(location.search);
+  if (params.get('recarga') === '1' || params.get('pagamento') === 'sucesso') {
+    document.getElementById('modal-recarga').classList.add('show');
+  }
+  const comprarId = params.get('comprar');
+  if (comprarId) {
+    const s = servicosCarregados.find((x) => String(x.id) === String(comprarId));
+    if (s) pedirCompra(s.id, null, s.precoCentavos);
+  }
 })();
