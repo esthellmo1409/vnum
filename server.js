@@ -1060,9 +1060,10 @@ setInterval(async function verificarSms5sim() {
           transact(function(db2) {
             const o2 = db2.orders.find(function(x) { return x.id === order.id; });
             if (o2 && o2.status === 'aguardando') {
+              const texto = ultimoSms.text || ultimoSms.code || '';
               o2.status = 'recebido';
-              o2.mensagemRecebida = ultimoSms.text || JSON.stringify(ultimoSms);
-              o2.codigo = ultimoSms.code || null;
+              o2.codigo = ultimoSms.code || extrairCodigo(texto) || null;
+              o2.mensagemRecebida = texto || (o2.codigo ? ('Código: ' + o2.codigo) : 'SMS recebido');
             }
           });
         }

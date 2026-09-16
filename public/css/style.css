@@ -189,10 +189,19 @@ p { color: var(--text-dim); margin: 0; }
 .number-reel .digit { display: inline-block; animation: reel 2.4s ease-out 1; }
 @keyframes reel { from { transform: translateY(-60%); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
 
-.bubble {
+.sms-demo .bubble {
   background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 14px 16px;
   font-family: var(--mono); font-size: 13.5px; color: var(--text);
   opacity: 0; animation: bubble-in .5s ease-out 1.6s forwards;
+}
+.bubble {
+  background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 14px 16px;
+  font-family: var(--mono); font-size: 13.5px; color: var(--text);
+}
+#pedido-sms.bubble,
+#pedido-sms {
+  opacity: 1;
+  animation: none;
 }
 .bubble .code { color: var(--amber); font-weight: 600; }
 @keyframes bubble-in { to { opacity: 1; } }

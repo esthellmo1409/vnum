@@ -1,6 +1,7 @@
 let pedidoAtual = null;
 let pollTimer = null;
 let contadorTimer = null;
+let somCodigoJaTocou = false;
 const PEDIDO_TOTAL_MS = 15 * 60 * 1000;
 const PEDIDO_CANCEL_MIN_MS = 2 * 60 * 1000;
 
@@ -292,6 +293,7 @@ async function comprarNumero(servicoId, ddd, precoEsperadoCentavos) {
 
 function abrirModalPedido(pedido) {
   pedidoAtual = pedido;
+  somCodigoJaTocou = pedido.status === 'recebido';
   document.getElementById('pedido-servico').textContent = pedido.servicoNome + ' — número reservado';
   document.getElementById('pedido-numero').textContent = pedido.numero;
   document.getElementById('modal-pedido').classList.add('show');
@@ -302,6 +304,8 @@ function abrirModalPedido(pedido) {
 }
 
 function tocarSomCodigoRecebido() {
+  if (somCodigoJaTocou) return;
+  somCodigoJaTocou = true;
   try {
     const ctx = new (window.AudioContext || window.webkitAudioContext)();
     const notas = [{tempo:0,freq:1046},{tempo:0.15,freq:1318},{tempo:0.3,freq:1046},{tempo:0.45,freq:1318}];
@@ -312,7 +316,7 @@ function tocarSomCodigoRecebido() {
       osc.connect(gain);
       gain.connect(ctx.destination);
       osc.frequency.value = n.freq;
-      gain.gain.setValueAtTime(1, ctx.currentTime + n.tempo);
+      gain.gain.setValueAtTime(0.12, ctx.currentTime + n.tempo);
       gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + n.tempo + 0.14);
       osc.start(ctx.currentTime + n.tempo);
       osc.stop(ctx.currentTime + n.tempo + 0.14);
@@ -320,16 +324,41 @@ function tocarSomCodigoRecebido() {
   } catch (e) {}
 }
 
+function escaparHtml(s) {
+  return String(s || '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
+}
+
 function atualizarStatusPedidoUI(pedido) {
   const statusEl = document.getElementById('pedido-status');
   const smsEl = document.getElementById('pedido-sms');
+  const btnCopiar = document.getElementById('btn-copiar-codigo');
+  if (btnCopiar) btnCopiar.style.display = 'none';
   if (pedido.status === 'aguardando') {
     statusEl.innerHTML = '<span class="dot"></span> aguardando SMS…';
     smsEl.style.display = 'none';
   } else if (pedido.status === 'recebido') {
     statusEl.innerHTML = '<span class="dot"></span> código recebido!';
+    const msg = pedido.mensagemRecebida && pedido.mensagemRecebida !== 'null'
+      ? String(pedido.mensagemRecebida)
+      : '';
+    const codigo = pedido.codigo ? String(pedido.codigo) : '';
     smsEl.style.display = 'block';
-    smsEl.innerHTML = pedido.mensagemRecebida + (pedido.codigo ? ` <br><strong style="color:var(--amber)">Código: ${pedido.codigo}</strong>` : '');
+    smsEl.style.opacity = '1';
+    smsEl.innerHTML = (msg ? escaparHtml(msg) : 'SMS recebido.')
+      + (codigo ? ` <br><strong class="code">Código: ${escaparHtml(codigo)}</strong>` : '');
+    if (btnCopiar && codigo) {
+      btnCopiar.style.display = 'block';
+      btnCopiar.onclick = () => {
+        navigator.clipboard.writeText(codigo).then(() => {
+          btnCopiar.textContent = 'Código copiado';
+          setTimeout(() => { btnCopiar.textContent = 'Copiar código'; }, 1600);
+        });
+      };
+    }
     tocarSomCodigoRecebido();
     clearInterval(pollTimer);
     clearInterval(contadorTimer);
@@ -387,9 +416,15 @@ async function carregarHistorico() {
       <td>${p.servicoNome}</td>
       <td style="font-family:var(--mono)">${p.precoPagoCentavos !== undefined && p.precoPagoCentavos !== null ? 'R$ ' + centavosParaReais(p.precoPagoCentavos) : '—'}</td>
       <td>${new Date(p.criadoEm).toLocaleString('pt-BR')}</td>
-      <td>${p.status === 'aguardando' ? `<button class="btn btn-ghost btn-sm" onclick='abrirModalPedido(${JSON.stringify(p)})'>Ver</button>` : ''}</td>
+      <td>${(p.status === 'aguardando' || p.status === 'recebido') ? `<button class="btn btn-ghost btn-sm" data-abrir-pedido="${p.id}">Ver</button>` : ''}</td>
     </tr>
   `).join('');
+  body.querySelectorAll('[data-abrir-pedido]').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      const pedido = data.pedidos.find((x) => String(x.id) === String(btn.dataset.abrirPedido));
+      if (pedido) abrirModalPedido(pedido);
+    });
+  });
 }
 
 function buscarServicoPorNome(pedacos) {
