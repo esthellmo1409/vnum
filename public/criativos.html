@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Gerador de Criativos — SimSMS</title>
+<link rel="stylesheet" href="/css/criativos.css">
+</head>
+<body class="studio">
+  <header class="st-top">
+    <div class="st-top-left">
+      <span class="st-mark">SS</span>
+      <div>
+        <h1>Gerador de Criativos SimSMS</h1>
+        <p>Campanhas para WhatsApp, Instagram, Stories, Facebook e Telegram</p>
+      </div>
+    </div>
+    <div class="st-top-actions">
+      <a class="st-link" href="/admin.html">Voltar ao admin</a>
+      <button class="st-btn" type="button" id="btn-variacao">Nova variação</button>
+      <button class="st-btn st-btn-primary" type="button" id="btn-baixar">Baixar PNG</button>
+    </div>
+  </header>
+
+  <div class="st-app">
+    <aside class="st-col" id="col-config">
+      <span class="st-label">Formato</span>
+      <div class="st-grid" id="opts-formato"></div>
+      <span class="st-label">Objetivo</span>
+      <div class="st-grid" id="opts-objetivo"></div>
+      <span class="st-label">Estilo</span>
+      <div class="st-grid" id="opts-estilo"></div>
+      <span class="st-label">Modelo visual</span>
+      <div class="st-models" id="opts-modelo"></div>
+      <span class="st-label">CTA</span>
+      <div class="st-grid" id="opts-cta"></div>
+    </aside>
+
+    <section class="st-canvas-col">
+      <div class="st-canvas-bar">
+        <span id="meta-formato">1080 × 1080</span>
+        <span id="meta-campanha">Campanha SimSMS</span>
+      </div>
+      <div class="st-preview" id="preview">
+        <div class="preview-scaler" id="scaler">
+          <div class="stage" id="stage"></div>
+        </div>
+      </div>
+    </section>
+
+    <aside class="st-col st-col-right">
+      <span class="st-label">Texto da peça</span>
+      <div class="field">
+        <label for="txt-headline">Título</label>
+        <textarea id="txt-headline">PRECISA RECEBER UM SMS?</textarea>
+      </div>
+      <div class="field">
+        <label for="txt-sub">Texto de apoio</label>
+        <textarea id="txt-sub">Números virtuais para receber códigos SMS sem precisar usar seu número pessoal.</textarea>
+      </div>
+      <div class="field">
+        <label>Destaques (até 4 · só fatos do produto)</label>
+        <div class="chips-edit">
+          <input id="chip-0" value="Ativação rápida">
+          <input id="chip-1" value="Pagamento via PIX">
+          <input id="chip-2" value="Tudo pelo painel">
+          <input id="chip-3" value="Número virtual">
+        </div>
+      </div>
+      <div class="field">
+        <label for="txt-cta">Botão</label>
+        <input id="txt-cta" value="ACESSE SIMSMS.COM.BR">
+      </div>
+      <div class="field">
+        <label for="txt-url">URL na arte</label>
+        <input id="txt-url" value="simsms.com.br">
+      </div>
+      <p class="hint" id="hint-sistema">Preços, avaliações e quantidade de clientes não entram na arte. Oferta e afiliados só aparecem se estiverem ativos no painel.</p>
+    </aside>
+  </div>
+
+<script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+<script src="/js/criativos.js"></script>
+</body>
+</html>
