@@ -669,6 +669,15 @@ document.getElementById('btn-add-creditos').addEventListener('click', () => {
 document.querySelectorAll('[data-close]').forEach(el => {
   el.addEventListener('click', () => document.getElementById(el.dataset.close).classList.remove('show'));
 });
+document.querySelectorAll('.modal-bg').forEach((bg) => {
+  bg.addEventListener('click', (e) => {
+    if (e.target === bg) bg.classList.remove('show');
+  });
+});
+document.addEventListener('keydown', (e) => {
+  if (e.key !== 'Escape') return;
+  document.querySelectorAll('.modal-bg.show').forEach((bg) => bg.classList.remove('show'));
+});
 
 // ----- Recarga -----
 const campoCpfRecarga = document.getElementById('cpf-recarga');

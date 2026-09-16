@@ -146,9 +146,11 @@
 
 <!-- Modal: adicionar créditos -->
 <div class="modal-bg" id="modal-afiliado">
-  <div class="modal" style="position:relative;">
-    <span class="close-x" data-close="modal-afiliado">&times;</span>
-    <h3>Indique e ganhe</h3>
+  <div class="modal" style="position:relative; max-width:560px;">
+    <div style="display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:8px; position:sticky; top:0; background:#fff; z-index:4; padding-bottom:8px;">
+      <h3 style="margin:0;">Indique e ganhe</h3>
+      <button type="button" class="btn btn-ghost btn-sm" data-close="modal-afiliado">Fechar</button>
+    </div>
     <p id="afiliado-intro" style="font-size:13px; color:var(--muted); margin-bottom:14px;">Compartilhe seu link. Cadastros e primeiras compras entram no histórico com dados reais do banco.</p>
     <p id="afiliado-status-txt" style="font-size:13px;margin-bottom:10px;"></p>
     <div class="field">
@@ -199,6 +201,7 @@
         <tbody id="afiliado-pag-body"></tbody>
       </table>
     </div>
+    <button type="button" class="btn btn-ghost btn-block" data-close="modal-afiliado" style="margin-top:16px;">Fechar</button>
   </div>
 </div>
 

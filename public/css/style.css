@@ -390,11 +390,11 @@ td { padding: 12px; border-bottom: 1px solid var(--border); color: var(--text); 
 .tag.ocupado { background: var(--amber-dim); color: var(--amber); }
 .tag.manutencao { background: var(--surface-2); color: var(--text-dim); }
 
-.modal-bg { position: fixed; inset: 0; background: rgba(16,21,31,.42); display: none; align-items: center; justify-content: center; z-index: 100; padding: 20px; }
+.modal-bg { position: fixed; inset: 0; background: rgba(16,21,31,.42); display: none; align-items: flex-start; justify-content: center; z-index: 100; padding: 24px 16px; overflow-y: auto; }
 .modal-bg.show { display: flex; }
-.modal { width: 100%; max-width: 420px; background: #FFFFFF; border: 1px solid var(--border); border-radius: 16px; padding: 28px; box-shadow: var(--shadow-md); }
+.modal { width: 100%; max-width: 420px; max-height: calc(100vh - 48px); overflow-y: auto; background: #FFFFFF; border: 1px solid var(--border); border-radius: 16px; padding: 28px; box-shadow: var(--shadow-md); margin: auto; }
 .modal h3 { font-size: 18px; margin-bottom: 18px; color: var(--text); }
-.close-x { position: absolute; top: 16px; right: 16px; cursor: pointer; color: var(--text-dim); font-size: 20px; }
+.close-x { position: sticky; top: 0; float: right; z-index: 3; cursor: pointer; color: var(--text-dim); font-size: 22px; line-height: 1; background: #fff; padding: 4px 8px; border-radius: 8px; }
 
 .qr-box { text-align: center; padding: 16px 0; }
 .qr-box img { width: 200px; height: 200px; border-radius: 10px; background: #fff; padding: 8px; border: 1px solid var(--border); }
