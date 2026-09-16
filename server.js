@@ -13,6 +13,7 @@ const smsman = require('./lib/smsman');
 const funil = require('./lib/funil');
 const seoPages = require('./lib/seo-pages');
 const aquisicao = require('./lib/aquisicao');
+const whatsappNotify = require('./lib/whatsapp-notify');
 
 function calcularPrecoVendaCentavos(custoReaisCentavos, db) {
   const config = (db && db.configuracoes) || {};
@@ -271,7 +272,12 @@ async function api(req, res, pathname, method) {
       const token = newToken();
       sessions.set(token, user.id);
       res.setHeader('Set-Cookie', `sessao=${token}; HttpOnly; Path=/; SameSite=Lax; Max-Age=2592000`);
-      return sendJson(res, 201, { usuario: publicUser(user) });
+      const aviso = { nome: user.nome, email: user.email, origem: user.origemTrafego, ref: ref || null };
+      const out = sendJson(res, 201, { usuario: publicUser(user) });
+      setImmediate(() => {
+        whatsappNotify.novoCliente(aviso).catch((e) => console.error('Aviso WhatsApp (cadastro):', e.message));
+      });
+      return out;
     });
   }
 
