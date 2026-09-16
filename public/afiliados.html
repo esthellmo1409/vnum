@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Seja afiliado — SimSMS Virtual</title>
+<meta name="description" content="Ganhe dinheiro indicando o SimSMS. Link exclusivo, comissão configurável e acompanhamento no painel.">
+<link rel="canonical" href="https://www.simsms.com.br/afiliados.html">
+<link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+<header class="topbar">
+  <div class="topbar-inner">
+    <a href="/" class="brand"><span class="brand-mark">SS</span> SimSMS Virtual</a>
+    <div class="nav-actions">
+      <a href="/login.html" class="btn btn-ghost btn-sm">Entrar</a>
+      <a href="/cadastro.html" class="btn btn-primary btn-sm">Criar conta</a>
+    </div>
+  </div>
+</header>
+<section class="hero" style="padding:48px 0 24px">
+  <div class="container" style="max-width:720px">
+    <p class="eyebrow">Programa de afiliados</p>
+    <h1>Ganhe dinheiro indicando o SimSMS</h1>
+    <p class="lead" id="af-lead">Compartilhe seu link. Quando alguém se cadastra e compra, a comissão entra no seu painel — valores definidos no admin, sem número inventado.</p>
+    <div class="hero-ctas">
+      <a href="/cadastro.html" class="btn btn-teal" id="cta-afiliado">Quero ser afiliado</a>
+      <a href="/login.html" class="btn btn-ghost">Já tenho conta</a>
+    </div>
+  </div>
+</section>
+<section><div class="container" style="max-width:720px;padding-bottom:48px">
+  <h2>Como funciona</h2>
+  <p>Você cria a conta, pede para ser afiliado (se o admin exigir aprovação) e recebe um link <code>/?ref=SEUCODIGO</code>. Cada cadastro e cada venda ficam ligados a esse código no banco.</p>
+  <h2>Como divulgar</h2>
+  <p>Use Instagram, WhatsApp, TikTok ou Google com o mesmo link. Dá para somar UTM: <code>/?ref=SEUCODIGO&amp;utm_source=instagram</code>. No painel há textos, banners e QR Code.</p>
+  <h2>Como acompanhar</h2>
+  <p>No painel, em <strong>Indique e ganhe</strong>: pessoas indicadas, cadastros, primeira compra, comissão gerada, saldo e histórico. Só dados reais.</p>
+  <h2>Como funciona a comissão</h2>
+  <p id="af-comissao">O percentual ou valor fixo, primeira compra e recorrência são configurados no painel administrativo. Indicação comum e afiliado aprovado podem ter regras diferentes.</p>
+  <h2>Como solicitar pagamento</h2>
+  <p id="af-saque">Quando o saldo passar do mínimo configurado, o admin registra o pagamento no histórico. Fale com o suporte no WhatsApp para acertar o Pix.</p>
+  <p><a href="/cadastro.html" class="btn btn-teal">Quero ser afiliado</a></p>
+</div></section>
+<footer><div class="container"><span>© 2026 SimSMS Virtual</span><a href="/">Início</a></div></footer>
+<script src="/js/origem.js"></script>
+<script src="/js/analytics.js"></script>
+<script>
+fetch('/api/publico').then(function (r) { return r.json(); }).then(function (p) {
+  var a = p.aquisicaoPublica || {};
+  if (a.comissaoPrimeiraCompraPercent) {
+    document.getElementById('af-comissao').textContent = 'Comissão da primeira compra do indicado (afiliado aprovado): ' + a.comissaoPrimeiraCompraPercent + '%.' + (a.comissaoRecorrente ? ' Recorrente habilitada.' : ' Sem recorrência.') + ' Saque mínimo: R$ ' + ((a.saqueMinimoCentavos || 0) / 100).toFixed(2).replace('.', ',') + '.' + (a.aprovacaoObrigatoria ? ' Novos afiliados passam por aprovação.' : '');
+  }
+}).catch(function () {});
+fetch('/api/auth/eu').then(function (r) { return r.json(); }).then(function (d) {
+  if (d.usuario) {
+    document.getElementById('cta-afiliado').href = '/dashboard.html';
+    document.getElementById('cta-afiliado').textContent = 'Abrir meu painel';
+  }
+}).catch(function () {});
+</script>
+</body>
+</html>

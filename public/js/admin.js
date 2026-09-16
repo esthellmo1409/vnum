@@ -42,7 +42,8 @@ const titulos = {
   pedidos: 'Pedidos',
   usuarios: 'Usuários',
   financeiro: 'Gestão Financeira',
-  afiliados: 'Afiliados'
+  afiliados: 'Afiliados',
+  marketing: 'Marketing'
 };
 const subtitulos = {
   resumo: 'Visão rápida do dia — pedidos, entrega e receita.',
@@ -51,7 +52,8 @@ const subtitulos = {
   pedidos: 'Busca, filtros e ações rápidas.',
   usuarios: 'Saldo, afiliados e suporte de conta.',
   financeiro: 'Lucro, saldos das APIs e margem.',
-  afiliados: 'Comissões e indicados.'
+  afiliados: 'Comissões, status e pagamentos.',
+  marketing: 'Origem, conversão, campanhas e CAC.'
 };
 document.querySelectorAll('.side-link[data-tab]').forEach(link => {
   link.addEventListener('click', (e) => {
@@ -62,7 +64,7 @@ document.querySelectorAll('.side-link[data-tab]').forEach(link => {
     document.getElementById('page-title').textContent = titulos[alvo];
     const sub = document.getElementById('page-sub');
     if (sub) sub.textContent = subtitulos[alvo] || '';
-    ['resumo', 'slots', 'servicos', 'pedidos', 'usuarios', 'financeiro', 'afiliados'].forEach(t => {
+    ['resumo', 'slots', 'servicos', 'pedidos', 'usuarios', 'financeiro', 'afiliados', 'marketing'].forEach(t => {
       const painel = document.getElementById('painel-' + t);
       if (painel) painel.style.display = t === alvo ? 'block' : 'none';
     });
@@ -73,6 +75,7 @@ document.querySelectorAll('.side-link[data-tab]').forEach(link => {
     if (alvo === 'usuarios') carregarUsuarios();
     if (alvo === 'financeiro') { carregarFinanceiro(); carregarConfiguracoes(); carregarSaldo5sim(); carregarSaldoSmsman(); }
     if (alvo === 'afiliados') { carregarAfiliados(); }
+    if (alvo === 'marketing') { carregarMarketing(30); carregarConfiguracoes(); carregarCampanhas(); }
   });
 });
 
@@ -423,13 +426,17 @@ async function carregarAfiliados() {
     <tr>
       <td>${a.nome}</td>
       <td>${a.email}</td>
-      <td style="font-family:var(--mono)">${a.codigoAfiliado}</td>
+      <td style="font-family:var(--mono)">${a.codigoAfiliado || '—'}</td>
+      <td>${a.afiliadoStatus || '—'}</td>
       <td>${a.totalIndicados}</td>
       <td>${a.totalVendasComComissao}</td>
       <td style="font-family:var(--mono)">R$ ${centavosParaReais(a.saldoComissaoCentavos)}</td>
       <td>
         <button class="btn btn-ghost btn-sm" onclick="verVendasAfiliado(${a.id})">Ver vendas</button>
-        <button class="btn btn-ghost btn-sm" onclick="marcarComissaoPaga(${a.id})">Marcar como pago</button>
+        <button class="btn btn-ghost btn-sm" onclick="statusAfiliado(${a.id},'ativo')">Aprovar</button>
+        <button class="btn btn-ghost btn-sm" onclick="statusAfiliado(${a.id},'bloqueado')">Bloquear</button>
+        <button class="btn btn-ghost btn-sm" onclick="statusAfiliado(${a.id},'ativo')">Desbloquear</button>
+        <button class="btn btn-ghost btn-sm" onclick="marcarComissaoPaga(${a.id})">Registrar pagamento</button>
       </td>
     </tr>
   `).join('');
@@ -448,9 +455,16 @@ function verVendasAfiliado(id) {
   `).join('') || '<tr><td colspan="4" style="text-align:center; color:var(--muted);">Nenhuma venda ainda</td></tr>';
   document.getElementById('modal-vendas-afiliado').classList.add('show');
 }
+async function statusAfiliado(id, status) {
+  await fetch('/api/admin/afiliados/' + id + '/status', {
+    method: 'PUT', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ status: status })
+  });
+  carregarAfiliados();
+}
 async function marcarComissaoPaga(id) {
-  if (!confirm('Confirma que já pagou a comissão desse afiliado? O saldo dele será zerado.')) return;
-  await fetch('/api/admin/afiliados/' + id + '/pagar', { method: 'POST' });
+  if (!confirm('Registrar pagamento do saldo atual deste afiliado? O valor sai do saldo e entra no histórico.')) return;
+  await fetch('/api/admin/afiliados/' + id + '/pagar', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' });
   carregarAfiliados();
 }
 
@@ -736,6 +750,30 @@ async function carregarConfiguracoes() {
     document.getElementById("bonus-dias").value = b.validadeDias || 0;
     document.getElementById("bonus-servicos").value = (b.servicosIds || []).join(',');
   }
+  const aq = data.configuracoes.aquisicao || {};
+  const setv = (id, v) => { const el = document.getElementById(id); if (el) el.value = v; };
+  const setc = (id, v) => { const el = document.getElementById(id); if (el) el.checked = !!v; };
+  setc('aq-indicacao', aq.indicacaoAtiva !== false);
+  setc('aq-recorrente', aq.comissaoRecorrente !== false);
+  setc('aq-aprovacao', aq.aprovacaoObrigatoria !== false);
+  setv('aq-modo', aq.comissaoModo || 'percent');
+  setv('aq-ind-pct', aq.comissaoIndicacaoPercent);
+  setv('aq-af-pct', aq.comissaoAfiliadoPercent);
+  setv('aq-pri-pct', aq.comissaoPrimeiraCompraPercent);
+  setv('aq-rec-pct', aq.comissaoRecorrentePercent);
+  setv('aq-fix-pri', ((aq.comissaoFixaPrimeiraCentavos || 0) / 100).toFixed(2));
+  setv('aq-fix-rec', ((aq.comissaoFixaRecorrenteCentavos || 0) / 100).toFixed(2));
+  setv('aq-sobre', aq.comissaoSobre || 'lucro');
+  setv('aq-saque', ((aq.saqueMinimoCentavos || 0) / 100).toFixed(2));
+  setv('aq-valid', aq.periodoValidacaoDias || 0);
+  setv('aq-wa', aq.textoWhatsApp || '');
+  setv('aq-ig', aq.textoInstagram || '');
+  const of = data.configuracoes.ofertaNovos || {};
+  setc('of-ativo', of.ativo);
+  setv('of-titulo', of.titulo || '');
+  setv('of-texto', of.texto || '');
+  setv('of-pct', of.descontoPercent || 0);
+  setv('of-cupom', of.cupomCodigo || '');
 }
 document.getElementById("btn-salvar-config").addEventListener("click", async function() {
   const multiplicador5sim = document.getElementById("config-multiplicador").value;
@@ -763,15 +801,112 @@ async function carregarCupons() {
   const res = await fetch("/api/admin/cupons");
   const data = await res.json();
   el.innerHTML = (data.cupons || []).map(function(c) {
-    return c.codigo + " — R$ " + (c.bonusCentavos/100).toFixed(2) + (c.ativo ? " (ativo)" : " (off)");
+    return c.codigo + " — " + (c.descontoPercent ? c.descontoPercent + "% " : "") + "R$ " + ((c.descontoCentavos || c.bonusCentavos || 0)/100).toFixed(2) + " usos " + (c.usos || 0) + (c.usosMax ? "/" + c.usosMax : "") + (c.ativo ? " (ativo)" : " (off)") + (c.campanha ? " [" + c.campanha + "]" : "") + (c.afiliadoId ? " afiliado #" + c.afiliadoId : "");
   }).join("<br>") || "Nenhum cupom.";
 }
 const btnCupom = document.getElementById("btn-criar-cupom");
 if (btnCupom) btnCupom.addEventListener("click", async function() {
   await fetch("/api/admin/cupons", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({
     codigo: document.getElementById("cupom-codigo").value,
-    bonusCentavos: Math.round(Number(document.getElementById("cupom-bonus").value || 0) * 100)
+    bonusCentavos: Math.round(Number(document.getElementById("cupom-bonus").value || 0) * 100),
+    descontoCentavos: Math.round(Number(document.getElementById("cupom-bonus").value || 0) * 100),
+    descontoPercent: Number(document.getElementById("cupom-percent").value || 0),
+    validade: document.getElementById("cupom-validade").value || null,
+    usosMax: document.getElementById("cupom-usos").value ? Number(document.getElementById("cupom-usos").value) : null,
+    userId: document.getElementById("cupom-user").value ? Number(document.getElementById("cupom-user").value) : null,
+    campanha: document.getElementById("cupom-campanha").value || null,
+    afiliadoId: document.getElementById("cupom-afiliado").value ? Number(document.getElementById("cupom-afiliado").value) : null
   }) });
   carregarCupons();
 });
 carregarCupons();
+
+async function carregarMarketing(dias) {
+  const res = await fetch('/api/admin/marketing?dias=' + (dias || 30));
+  const data = await res.json();
+  const m = data.atual || data.d30;
+  if (!m) return;
+  const reais = (c) => 'R$ ' + centavosParaReais(c || 0);
+  document.getElementById('mkt-vis').textContent = m.visitantes;
+  document.getElementById('mkt-cad').textContent = m.cadastros;
+  document.getElementById('mkt-pri').textContent = m.primeirasCompras;
+  document.getElementById('mkt-com').textContent = m.compras;
+  document.getElementById('mkt-fat').textContent = reais(m.faturamentoCentavos);
+  document.getElementById('mkt-ccad').textContent = m.conversaoCadastro != null ? m.conversaoCadastro + '%' : '—';
+  document.getElementById('mkt-ccom').textContent = m.conversaoCompra != null ? m.conversaoCompra + '%' : '—';
+  document.getElementById('mkt-cac').textContent = m.cacCentavos != null ? reais(m.cacCentavos) : '—';
+  document.getElementById('mkt-rec').textContent = m.clientesRecorrentes;
+  document.getElementById('mkt-af').textContent = m.afiliados;
+  const orig = m.vendasPorOrigem || {};
+  document.getElementById('mkt-origem').innerHTML = Object.keys(orig).length
+    ? Object.keys(orig).map(function (k) {
+      const x = orig[k];
+      return '<tr><td>' + k + '</td><td>' + x.cadastros + '</td><td>' + x.vendas + '</td><td>' + reais(x.faturamentoCentavos) + '</td></tr>';
+    }).join('')
+    : '<tr><td colspan="4">Sem origem registrada neste período.</td></tr>';
+}
+document.querySelectorAll('[data-mkt]').forEach(function (btn) {
+  btn.addEventListener('click', function () {
+    document.querySelectorAll('[data-mkt]').forEach(function (b) { b.classList.remove('btn-teal'); b.classList.add('btn-ghost'); });
+    btn.classList.remove('btn-ghost');
+    btn.classList.add('btn-teal');
+    carregarMarketing(Number(btn.dataset.mkt));
+  });
+});
+const btnAq = document.getElementById('btn-salvar-aquisicao');
+if (btnAq) btnAq.addEventListener('click', async function () {
+  await fetch('/api/admin/configuracoes', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({
+    aquisicao: {
+      indicacaoAtiva: document.getElementById('aq-indicacao').checked,
+      comissaoRecorrente: document.getElementById('aq-recorrente').checked,
+      aprovacaoObrigatoria: document.getElementById('aq-aprovacao').checked,
+      comissaoModo: document.getElementById('aq-modo').value,
+      comissaoIndicacaoPercent: Number(document.getElementById('aq-ind-pct').value || 0),
+      comissaoAfiliadoPercent: Number(document.getElementById('aq-af-pct').value || 0),
+      comissaoPrimeiraCompraPercent: Number(document.getElementById('aq-pri-pct').value || 0),
+      comissaoRecorrentePercent: Number(document.getElementById('aq-rec-pct').value || 0),
+      comissaoFixaPrimeiraCentavos: Math.round(Number(document.getElementById('aq-fix-pri').value || 0) * 100),
+      comissaoFixaRecorrenteCentavos: Math.round(Number(document.getElementById('aq-fix-rec').value || 0) * 100),
+      comissaoSobre: document.getElementById('aq-sobre').value,
+      saqueMinimoCentavos: Math.round(Number(document.getElementById('aq-saque').value || 0) * 100),
+      periodoValidacaoDias: Number(document.getElementById('aq-valid').value || 0),
+      textoWhatsApp: document.getElementById('aq-wa').value,
+      textoInstagram: document.getElementById('aq-ig').value
+    }
+  }) });
+  alert('Comissões salvas.');
+});
+const btnOf = document.getElementById('btn-salvar-oferta');
+if (btnOf) btnOf.addEventListener('click', async function () {
+  await fetch('/api/admin/configuracoes', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({
+    ofertaNovos: {
+      ativo: document.getElementById('of-ativo').checked,
+      titulo: document.getElementById('of-titulo').value,
+      texto: document.getElementById('of-texto').value,
+      descontoPercent: Number(document.getElementById('of-pct').value || 0),
+      cupomCodigo: document.getElementById('of-cupom').value
+    }
+  }) });
+  alert('Oferta salva. O desconto na compra só aplica se o cupom existir e o cliente usar o código.');
+});
+async function carregarCampanhas() {
+  const el = document.getElementById('camp-lista');
+  if (!el) return;
+  const res = await fetch('/api/admin/campanhas');
+  const data = await res.json();
+  el.innerHTML = (data.campanhas || []).map(function (c) {
+    const link = location.origin + '/?utm_source=' + encodeURIComponent(c.utmSource || '') + (c.utmCampaign ? '&utm_campaign=' + encodeURIComponent(c.utmCampaign) : '');
+    return c.nome + ' — ' + link + ' — gasto R$ ' + ((c.gastoCentavos || 0) / 100).toFixed(2);
+  }).join('<br>') || 'Nenhuma campanha.';
+}
+const btnCamp = document.getElementById('btn-campanha');
+if (btnCamp) btnCamp.addEventListener('click', async function () {
+  await fetch('/api/admin/campanhas', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({
+    nome: document.getElementById('camp-nome').value,
+    utmSource: document.getElementById('camp-src').value,
+    utmCampaign: document.getElementById('camp-utm').value,
+    gastoCentavos: Math.round(Number(document.getElementById('camp-gasto').value || 0) * 100)
+  }) });
+  carregarCampanhas();
+});
+

@@ -6,14 +6,16 @@ let filtroCat = 'Mais procurados';
 
 function irComprar(servicoId) {
   if (window.simsmsTrack) window.simsmsTrack('click_buy', { servicoId: servicoId });
+  var o = window.simsmsOrigem ? window.simsmsOrigem() : {};
+  var refQ = o.ref ? '&ref=' + encodeURIComponent(o.ref) : '';
   fetch('/api/auth/eu').then(function (r) { return r.json(); }).then(function (data) {
     if (data && data.usuario) {
       window.location.href = '/dashboard.html?comprar=' + encodeURIComponent(servicoId);
     } else {
-      window.location.href = '/cadastro.html?next=/dashboard.html%3Fcomprar%3D' + encodeURIComponent(servicoId) + '&servico=' + encodeURIComponent(servicoId);
+      window.location.href = '/cadastro.html?next=/dashboard.html%3Fcomprar%3D' + encodeURIComponent(servicoId) + '&servico=' + encodeURIComponent(servicoId) + refQ;
     }
   }).catch(function () {
-    window.location.href = '/cadastro.html?servico=' + encodeURIComponent(servicoId);
+    window.location.href = '/cadastro.html?servico=' + encodeURIComponent(servicoId) + refQ;
   });
 }
 

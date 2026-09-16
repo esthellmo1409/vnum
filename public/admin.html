@@ -19,6 +19,7 @@
     <a class="side-link" data-tab="usuarios" href="#">Usuários</a>
     <a class="side-link" data-tab="financeiro" href="#">Gestão Financeira</a>
     <a class="side-link" data-tab="afiliados" href="#">Afiliados</a>
+    <a class="side-link" data-tab="marketing" href="#">Marketing</a>
     <div class="side-spacer"></div>
     <a class="side-link" href="/dashboard.html">Ver painel do cliente</a>
     <a class="side-link" href="#" id="btn-sair">Sair</a>
@@ -120,10 +121,16 @@
         <button class="btn btn-teal btn-sm" id="btn-salvar-bonus" type="button">Salvar bônus</button>
       </div>
       <div style="margin-bottom:20px; padding:12px; background:var(--surface-2); border-radius:8px;">
-        <strong>Cupons</strong>
-        <div style="display:flex; gap:8px; margin:8px 0;">
+        <strong>Cupons rastreáveis</strong>
+        <div style="display:flex; flex-wrap:wrap; gap:8px; margin:8px 0; align-items:end;">
           <input id="cupom-codigo" placeholder="CODIGO" style="width:140px;">
-          <input id="cupom-bonus" type="number" placeholder="Bônus R$" style="width:120px;">
+          <input id="cupom-bonus" type="number" placeholder="Bônus/desc. R$" style="width:120px;">
+          <div><label style="display:block; font-size:12px;">% desconto</label><input id="cupom-percent" type="number" style="width:80px;"></div>
+          <div><label style="display:block; font-size:12px;">Validade</label><input id="cupom-validade" type="date"></div>
+          <div><label style="display:block; font-size:12px;">Usos máx.</label><input id="cupom-usos" type="number" style="width:80px;"></div>
+          <div><label style="display:block; font-size:12px;">ID usuário</label><input id="cupom-user" type="number" style="width:80px;"></div>
+          <div><label style="display:block; font-size:12px;">Campanha</label><input id="cupom-campanha" style="width:120px;"></div>
+          <div><label style="display:block; font-size:12px;">ID afiliado</label><input id="cupom-afiliado" type="number" style="width:80px;"></div>
           <button class="btn btn-ghost btn-sm" type="button" id="btn-criar-cupom">Criar cupom</button>
         </div>
         <div id="cupons-lista" style="font-size:13px;"></div>
@@ -139,10 +146,76 @@
     <section id="painel-afiliados" style="display:none;">
       <div class="table-wrap">
         <table>
-          <thead><tr><th>Nome</th><th>E-mail</th><th>Código</th><th>Indicados</th><th>Vendas c/ comissão</th><th>Saldo comissão</th><th></th></tr></thead>
+          <thead><tr><th>Nome</th><th>E-mail</th><th>Código</th><th>Status</th><th>Indicados</th><th>Vendas c/ comissão</th><th>Saldo comissão</th><th></th></tr></thead>
           <tbody id="afiliados-body"></tbody>
         </table>
       </div>
+    </section>
+
+    <section id="painel-marketing" style="display:none;">
+      <div style="display:flex; gap:8px; margin-bottom:12px;">
+        <button class="btn btn-ghost btn-sm" type="button" data-mkt="1">Hoje</button>
+        <button class="btn btn-ghost btn-sm" type="button" data-mkt="7">7 dias</button>
+        <button class="btn btn-teal btn-sm" type="button" data-mkt="30">30 dias</button>
+        <button class="btn btn-ghost btn-sm" type="button" data-mkt="90">90 dias</button>
+      </div>
+      <div class="metrics-grid" id="mkt-grid">
+        <div class="metric-card"><div class="label">Visitantes</div><div class="value" id="mkt-vis">—</div></div>
+        <div class="metric-card"><div class="label">Cadastros</div><div class="value" id="mkt-cad">—</div></div>
+        <div class="metric-card"><div class="label">Primeiras compras</div><div class="value" id="mkt-pri">—</div></div>
+        <div class="metric-card"><div class="label">Compras</div><div class="value" id="mkt-com">—</div></div>
+        <div class="metric-card"><div class="label">Faturamento</div><div class="value" id="mkt-fat">—</div></div>
+        <div class="metric-card"><div class="label">Conversão cadastro</div><div class="value" id="mkt-ccad">—</div></div>
+        <div class="metric-card"><div class="label">Conversão compra</div><div class="value" id="mkt-ccom">—</div></div>
+        <div class="metric-card"><div class="label">CAC</div><div class="value" id="mkt-cac">—</div></div>
+        <div class="metric-card"><div class="label">Clientes recorrentes</div><div class="value" id="mkt-rec">—</div></div>
+        <div class="metric-card"><div class="label">Afiliados</div><div class="value" id="mkt-af">—</div></div>
+      </div>
+      <h3>Vendas por origem</h3>
+      <div class="table-wrap" style="margin-bottom:20px;">
+        <table>
+          <thead><tr><th>Origem</th><th>Cadastros</th><th>Vendas</th><th>Faturamento</th></tr></thead>
+          <tbody id="mkt-origem"></tbody>
+        </table>
+      </div>
+      <h3>Comissões</h3>
+      <div style="display:grid; grid-template-columns:repeat(2,1fr); gap:12px; padding:12px; background:var(--surface-2); border-radius:8px; margin-bottom:16px;">
+        <label><input type="checkbox" id="aq-indicacao"> Indicação ativa</label>
+        <label><input type="checkbox" id="aq-recorrente"> Comissão recorrente</label>
+        <label><input type="checkbox" id="aq-aprovacao"> Aprovação obrigatória de afiliado</label>
+        <div><label>Modo</label><select id="aq-modo"><option value="percent">Percentual</option><option value="fixo">Valor fixo</option></select></div>
+        <div><label>% indicação</label><input id="aq-ind-pct" type="number"></div>
+        <div><label>% afiliado (legado)</label><input id="aq-af-pct" type="number"></div>
+        <div><label>% primeira compra</label><input id="aq-pri-pct" type="number"></div>
+        <div><label>% recorrente</label><input id="aq-rec-pct" type="number"></div>
+        <div><label>Fixo 1ª compra (R$)</label><input id="aq-fix-pri" type="number" step="0.01"></div>
+        <div><label>Fixo recorrente (R$)</label><input id="aq-fix-rec" type="number" step="0.01"></div>
+        <div><label>Base</label><select id="aq-sobre"><option value="lucro">Lucro</option><option value="venda">Venda</option></select></div>
+        <div><label>Saque mínimo (R$)</label><input id="aq-saque" type="number" step="0.01"></div>
+        <div><label>Validação (dias após cadastro)</label><input id="aq-valid" type="number"></div>
+        <div style="grid-column:1/-1;"><label>Texto WhatsApp</label><input id="aq-wa"></div>
+        <div style="grid-column:1/-1;"><label>Texto Instagram</label><input id="aq-ig"></div>
+        <button class="btn btn-teal btn-sm" type="button" id="btn-salvar-aquisicao">Salvar comissões</button>
+      </div>
+      <h3>Oferta para novos clientes</h3>
+      <div style="display:grid; grid-template-columns:repeat(2,1fr); gap:12px; padding:12px; background:var(--surface-2); border-radius:8px; margin-bottom:16px;">
+        <label><input type="checkbox" id="of-ativo"> Ativa</label>
+        <div><label>Título</label><input id="of-titulo"></div>
+        <div style="grid-column:1/-1;"><label>Texto</label><input id="of-texto"></div>
+        <div><label>% desconto (informativo)</label><input id="of-pct" type="number"></div>
+        <div><label>Cupom vinculado</label><input id="of-cupom"></div>
+        <button class="btn btn-teal btn-sm" type="button" id="btn-salvar-oferta">Salvar oferta</button>
+      </div>
+      <h3>Campanhas / links UTM</h3>
+      <div style="display:flex; flex-wrap:wrap; gap:8px; margin-bottom:12px;">
+        <input id="camp-nome" placeholder="Nome">
+        <input id="camp-src" placeholder="utm_source (instagram)">
+        <input id="camp-utm" placeholder="utm_campaign">
+        <input id="camp-gasto" type="number" placeholder="Gasto R$ (CAC)">
+        <button class="btn btn-teal btn-sm" type="button" id="btn-campanha">Criar campanha</button>
+      </div>
+      <p style="font-size:13px;color:var(--muted);">Exemplos: /?utm_source=instagram · /?utm_source=tiktok · /?utm_source=google · /?ref=CODIGO</p>
+      <div id="camp-lista" style="font-size:13px;"></div>
     </section>
   </main>
 </div>

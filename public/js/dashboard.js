@@ -286,13 +286,22 @@ window.pedirCompra = pedirCompra;
 document.getElementById('btn-confirmar-compra').addEventListener('click', () => {
   if (!compraPendente) return;
   document.getElementById('modal-confirmar').classList.remove('show');
-  comprarNumero(compraPendente.servicoId, compraPendente.ddd, compraPendente.precoEsperadoCentavos);
+  comprarNumero(compraPendente.servicoId, compraPendente.ddd, compraPendente.precoEsperadoCentavos, document.getElementById('conf-cupom').value);
 });
 
-async function comprarNumero(servicoId, ddd, precoEsperadoCentavos) {
+function origemPedido() {
+  const o = window.simsmsOrigem ? window.simsmsOrigem() : {};
+  return { origemTrafego: o.origemTrafego, utmSource: o.utmSource, ref: o.ref };
+}
+
+async function comprarNumero(servicoId, ddd, precoEsperadoCentavos, cupom) {
   const res = await fetch('/api/pedidos', {
     method: 'POST', headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ servicoId, pais: paisSelecionado, ddd: ddd || undefined, precoEsperadoCentavos: precoEsperadoCentavos != null ? precoEsperadoCentavos : undefined })
+    body: JSON.stringify(Object.assign({
+      servicoId, pais: paisSelecionado, ddd: ddd || undefined,
+      precoEsperadoCentavos: precoEsperadoCentavos != null ? precoEsperadoCentavos : undefined,
+      cupom: cupom || undefined
+    }, origemPedido()))
   });
   const data = await res.json();
   if (!res.ok) {
@@ -555,21 +564,51 @@ document.getElementById('link-afiliado').addEventListener('click', async (e) => 
   try {
     const res = await fetch('/api/afiliado');
     const data = await res.json();
-    if (!data.ehAfiliado) return;
-    document.getElementById('afiliado-link').value = window.location.origin + '/cadastro.html?ref=' + data.codigoAfiliado;
-    document.getElementById('afiliado-indicados').textContent = data.totalIndicados;
-    document.getElementById('afiliado-vendas').textContent = data.totalVendasComComissao;
-    document.getElementById('afiliado-saldo').textContent = 'R$ ' + centavosParaReais(data.saldoComissaoCentavos);
+    const link = window.location.origin + '/?ref=' + data.codigoAfiliado;
+    document.getElementById('afiliado-link').value = link;
+    document.getElementById('afiliado-indicados').textContent = data.pessoasIndicadas || 0;
+    document.getElementById('afiliado-cadastros').textContent = data.cadastros || 0;
+    document.getElementById('afiliado-primeira').textContent = data.primeiraCompra || 0;
+    document.getElementById('afiliado-gerada').textContent = 'R$ ' + centavosParaReais(data.comissaoGeradaCentavos || 0);
+    document.getElementById('afiliado-saldo').textContent = 'R$ ' + centavosParaReais(data.saldoDisponivelCentavos || 0);
+    document.getElementById('afiliado-saque-min').textContent = 'R$ ' + centavosParaReais(data.saqueMinimoCentavos || 0);
+    const st = data.afiliadoStatus || '';
+    document.getElementById('afiliado-status-txt').textContent =
+      st === 'ativo' ? 'Status: afiliado ativo.' :
+      st === 'pendente' ? 'Status: aguardando aprovação.' :
+      st === 'bloqueado' ? 'Status: bloqueado.' :
+      'Status: indicação (peça para virar afiliado se quiser comissão de afiliado).';
+    document.getElementById('afiliado-saque-hint').textContent = data.podeSacar
+      ? 'Você atingiu o mínimo. Peça o pagamento pelo WhatsApp do suporte.'
+      : 'Pagamento manual pelo admin quando o saldo passar do mínimo.';
+    const txtBase = (data.textos && data.textos.whatsapp) || 'Receba códigos SMS sem usar seu número pessoal. ';
+    const msgEl = document.getElementById('afiliado-msg');
+    if (!msgEl.value) msgEl.value = txtBase + link;
+    document.getElementById('btn-share-wa').href = 'https://wa.me/?text=' + encodeURIComponent(msgEl.value);
+    const qr = document.getElementById('afiliado-qr');
+    qr.src = 'https://api.qrserver.com/v1/create-qr-code/?size=160x160&data=' + encodeURIComponent(link);
     const corpo = document.getElementById('afiliado-vendas-body');
     if (corpo) {
-      corpo.innerHTML = (data.vendas || []).map(v => `
+      corpo.innerHTML = (data.historico || data.vendas || []).map(v => `
         <tr>
           <td>${v.servico}</td>
           <td>R$ ${centavosParaReais(v.valorVendaCentavos)}</td>
           <td>R$ ${centavosParaReais(v.comissaoCentavos)}</td>
           <td>${new Date(v.criadoEm).toLocaleDateString('pt-BR')}</td>
         </tr>
-      `).join('') || '<tr><td colspan="4" style="text-align:center; color:var(--muted);">Nenhuma venda ainda</td></tr>';
+      `).join('') || '<tr><td colspan="4" style="text-align:center; color:var(--muted);">Nenhuma comissão ainda</td></tr>';
+    }
+    const ind = document.getElementById('afiliado-indicados-body');
+    if (ind) {
+      ind.innerHTML = (data.indicados || []).map(x => `
+        <tr><td>${x.nome}</td><td>${x.comprou ? 'sim' : 'não'}</td><td>${x.criadoEm ? new Date(x.criadoEm).toLocaleDateString('pt-BR') : '—'}</td></tr>
+      `).join('') || '<tr><td colspan="3" style="text-align:center; color:var(--muted);">Ninguém ainda</td></tr>';
+    }
+    const pag = document.getElementById('afiliado-pag-body');
+    if (pag) {
+      pag.innerHTML = (data.pagamentos || []).map(p => `
+        <tr><td>#${p.id}</td><td>R$ ${centavosParaReais(p.valorCentavos)}</td><td>${new Date(p.em).toLocaleDateString('pt-BR')}</td></tr>
+      `).join('') || '<tr><td colspan="3" style="text-align:center; color:var(--muted);">Nenhum pagamento registrado</td></tr>';
     }
   } catch (err) {}
 });
@@ -582,14 +621,28 @@ document.getElementById('btn-copiar-link-afiliado').addEventListener('click', ()
   btn.textContent = 'Copiado!';
   setTimeout(() => { btn.textContent = textoOriginal; }, 2000);
 });
+document.getElementById('afiliado-msg').addEventListener('input', () => {
+  document.getElementById('btn-share-wa').href = 'https://wa.me/?text=' + encodeURIComponent(document.getElementById('afiliado-msg').value);
+});
+document.getElementById('btn-share-native').addEventListener('click', async () => {
+  const text = document.getElementById('afiliado-msg').value;
+  const url = document.getElementById('afiliado-link').value;
+  if (navigator.share) {
+    try { await navigator.share({ title: 'SimSMS', text: text, url: url }); } catch (e) {}
+  } else {
+    navigator.clipboard.writeText(text);
+    alert('Mensagem copiada.');
+  }
+});
+document.getElementById('btn-ser-afiliado').addEventListener('click', async () => {
+  const res = await fetch('/api/afiliado/solicitar', { method: 'POST' });
+  const data = await res.json();
+  if (!res.ok) return alert(data.erro || 'Não foi possível solicitar.');
+  alert(data.afiliadoStatus === 'pendente' ? 'Pedido enviado. O admin precisa aprovar.' : 'Você já está como afiliado.');
+  document.getElementById('link-afiliado').click();
+});
 async function revelarLinkAfiliadoSeAplicavel() {
-  try {
-    const res = await fetch('/api/afiliado');
-    const data = await res.json();
-    if (data.ehAfiliado) {
-      document.getElementById('link-afiliado').style.display = '';
-    }
-  } catch (err) {}
+  document.getElementById('link-afiliado').style.display = '';
 }
 document.getElementById('link-suporte').addEventListener('click', (e) => {
   e.preventDefault();
@@ -642,7 +695,7 @@ document.getElementById('btn-pix').addEventListener('click', async () => {
   }
   const res = await fetch('/api/pagamentos/pix', {
     method: 'POST', headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ valorReais: valor, nomePagador: nomeRecarga, cpfPagador: cpfRecarga })
+    body: JSON.stringify(Object.assign({ valorReais: valor, nomePagador: nomeRecarga, cpfPagador: cpfRecarga }, origemPedido()))
   });
   const data = await res.json();
   if (!res.ok) {
@@ -713,18 +766,19 @@ document.getElementById('btn-sair').addEventListener('click', async (e) => {
   await carregarCatalogo();
   carregarHistorico();
   revelarLinkAfiliadoSeAplicavel();
-  if (window.simsmsTrack) window.simsmsTrack('page_view');
   try {
     const pub = await fetch('/api/publico').then((r) => r.json());
+    const el = document.getElementById('bonus-dash');
+    const partes = [];
     if (pub.bonus && pub.bonus.ativo) {
-      const el = document.getElementById('bonus-dash');
-      if (el) {
-        el.hidden = false;
-        el.textContent = 'Novo cliente: depósito a partir de R$ ' + centavosParaReais(pub.bonus.minimoDepositoCentavos) + ' pode receber R$ ' + centavosParaReais(pub.bonus.bonusCentavos) + ' de bônus.';
-      }
+      partes.push('Primeira recarga: depósito a partir de R$ ' + centavosParaReais(pub.bonus.minimoDepositoCentavos) + ' pode receber R$ ' + centavosParaReais(pub.bonus.bonusCentavos) + ' de bônus.');
       const hint = document.getElementById('bonus-recarga-hint');
       if (hint) hint.textContent = 'Bônus de boas-vindas ativo acima de R$ ' + centavosParaReais(pub.bonus.minimoDepositoCentavos) + '.';
     }
+    if (pub.ofertaNovos && pub.ofertaNovos.ativo) {
+      partes.push((pub.ofertaNovos.titulo || 'Oferta para novos') + (pub.ofertaNovos.texto ? ' — ' + pub.ofertaNovos.texto : '') + (pub.ofertaNovos.cupomCodigo ? ' Cupom: ' + pub.ofertaNovos.cupomCodigo : ''));
+    }
+    if (el && partes.length) { el.hidden = false; el.textContent = partes.join(' '); }
   } catch (e) {}
   document.querySelectorAll('.pack-btn').forEach((btn) => {
     btn.addEventListener('click', () => {

@@ -12,6 +12,7 @@ const sim5 = require('./lib/5sim');
 const smsman = require('./lib/smsman');
 const funil = require('./lib/funil');
 const seoPages = require('./lib/seo-pages');
+const aquisicao = require('./lib/aquisicao');
 
 function calcularPrecoVendaCentavos(custoReaisCentavos, db) {
   const config = (db && db.configuracoes) || {};
@@ -171,6 +172,9 @@ function registrarEvento(db, evento, extra) {
     evento: String(evento || '').slice(0, 40),
     userId: extra && extra.userId || null,
     servicoId: extra && extra.servicoId || null,
+    origem: extra && extra.origem || null,
+    ref: extra && extra.ref || null,
+    visitorId: extra && extra.visitorId || null,
     em: new Date().toISOString()
   });
   if (db.eventos.length > 5000) db.eventos = db.eventos.slice(-4000);
@@ -197,7 +201,7 @@ function serveStatic(req, res, pathname) {
     return res.end('User-agent: *\nAllow: /\nSitemap: https://www.simsms.com.br/sitemap.xml\n');
   }
   if (pathname === '/sitemap.xml') {
-    const urls = ['/', '/login.html', '/cadastro.html', ...Object.keys(seoPages.PAGES)]
+    const urls = ['/', '/login.html', '/cadastro.html', '/afiliados.html', ...Object.keys(seoPages.PAGES)]
       .map((u) => `  <url><loc>https://www.simsms.com.br${u}</loc></url>`).join('\n');
     res.writeHead(200, { 'Content-Type': 'application/xml; charset=utf-8' });
     return res.end(`<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${urls}\n</urlset>`);
@@ -224,7 +228,7 @@ function serveStatic(req, res, pathname) {
 async function api(req, res, pathname, method) {
   // ----- AUTENTICAÇÃO -----
   if (pathname === '/api/auth/registro' && method === 'POST') {
-    const { nome, email, senha, ref } = await readBody(req);
+    const { nome, email, senha, ref, utmSource, utmCampaign, origemTrafego } = await readBody(req);
     if (!nome || !email || !senha || senha.length < 6) {
       return sendJson(res, 400, { erro: 'Preencha nome, e-mail e uma senha com 6+ caracteres.' });
     }
@@ -241,15 +245,26 @@ async function api(req, res, pathname, method) {
         saldoComissaoCentavos: 0,
         codigoAfiliado: null,
         indicadoPor: null,
+        afiliadoStatus: 'indicacao',
+        origemTrafego: aquisicao.classificarOrigem(origemTrafego || utmSource, ref),
+        utmSource: utmSource || null,
+        utmCampaign: utmCampaign || null,
         isAdmin: false,
         criadoEm: new Date().toISOString()
       };
+      user.codigoAfiliado = aquisicao.garantirCodigo(user);
       if (ref) {
-        const afiliadoRef = db.users.find((u) => u.codigoAfiliado === ref);
-        if (afiliadoRef) user.indicadoPor = afiliadoRef.id;
+        const afiliadoRef = aquisicao.encontrarPorRef(db, ref);
+        if (afiliadoRef && afiliadoRef.id !== user.id) {
+          user.indicadoPor = afiliadoRef.id;
+          if (!user.origemTrafego || user.origemTrafego === 'direto') {
+            user.origemTrafego = aquisicao.papel(afiliadoRef) === 'ativo' ? 'afiliado' : 'indicacao';
+          }
+        }
       }
       db.users.push(user);
-      registrarEvento(db, 'signup', { userId: user.id });
+      registrarEvento(db, 'signup', { userId: user.id, origem: user.origemTrafego, ref: ref || null });
+      if (ref) registrarEvento(db, 'affiliate_signup', { userId: user.id, ref: ref });
       const token = newToken();
       sessions.set(token, user.id);
       res.setHeader('Set-Cookie', `sessao=${token}; HttpOnly; Path=/; SameSite=Lax; Max-Age=2592000`);
@@ -355,14 +370,21 @@ async function api(req, res, pathname, method) {
     const permitido = [
       'page_view', 'service_view', 'click_buy', 'signup',
       'pix_started', 'pix_paid', 'activation_started', 'sms_received',
-      'activation_cancelled', 'refund', 'second_purchase'
+      'activation_cancelled', 'refund', 'second_purchase', 'first_purchase',
+      'repeat_purchase', 'affiliate_click', 'affiliate_signup', 'affiliate_purchase', 'coupon_used'
     ];
     if (!permitido.includes(body && body.evento)) {
       return sendJson(res, 400, { erro: 'Evento inválido.' });
     }
     const u = getUser(req);
     transact((db) => {
-      registrarEvento(db, body.evento, { userId: u ? u.id : null, servicoId: body.servicoId || null });
+      registrarEvento(db, body.evento, {
+        userId: u ? u.id : null,
+        servicoId: body.servicoId || null,
+        origem: body.origem || null,
+        ref: body.ref || null,
+        visitorId: body.visitorId || null
+      });
     });
     return sendJson(res, 200, { ok: true });
   }
@@ -389,21 +411,30 @@ async function api(req, res, pathname, method) {
 
   if (pathname === '/api/afiliado' && method === 'GET') {
     if (!user) return requireLogin();
-    const db = load();
-    const u = db.users.find((x) => x.id === user.id);
-    if (!u.codigoAfiliado) return sendJson(res, 200, { ehAfiliado: false });
-    const indicados = db.users.filter((x) => x.indicadoPor === u.id);
-    const vendasComComissao = db.orders.filter((o) => o.comissaoAfiliadoId === u.id);
-    return sendJson(res, 200, {
-      ehAfiliado: true,
-      codigoAfiliado: u.codigoAfiliado,
-      saldoComissaoCentavos: u.saldoComissaoCentavos || 0,
-      totalIndicados: indicados.length,
-      totalVendasComComissao: vendasComComissao.length,
-      vendas: vendasComComissao.map((o) => ({
-        servico: o.servicoNome, valorVendaCentavos: o.precoPagoCentavos,
-        comissaoCentavos: o.comissaoCentavos, criadoEm: o.criadoEm
-      })).sort((a, b) => new Date(b.criadoEm) - new Date(a.criadoEm))
+    return transact((db) => {
+      const u = db.users.find((x) => x.id === user.id);
+      if (!u) return sendJson(res, 404, { erro: 'Usuário não encontrado.' });
+      const stats = aquisicao.statsIndicacao(db, u);
+      return sendJson(res, 200, Object.assign({ ehAfiliado: stats.ehAfiliado }, stats, {
+        totalIndicados: stats.cadastros,
+        totalVendasComComissao: stats.historico.length,
+        saldoComissaoCentavos: stats.saldoDisponivelCentavos,
+        vendas: stats.historico
+      }));
+    });
+  }
+
+  if (pathname === '/api/afiliado/solicitar' && method === 'POST') {
+    if (!user) return requireLogin();
+    return transact((db) => {
+      const u = db.users.find((x) => x.id === user.id);
+      aquisicao.garantirCodigo(u);
+      const cfg = funil.mergeConfiguracoes(db.configuracoes).aquisicao;
+      if (aquisicao.papel(u) === 'bloqueado') return sendJson(res, 403, { erro: 'Conta de afiliado bloqueada.' });
+      if (aquisicao.papel(u) === 'ativo') return sendJson(res, 200, { ok: true, afiliadoStatus: 'ativo' });
+      u.afiliadoStatus = cfg.aprovacaoObrigatoria ? 'pendente' : 'ativo';
+      registrarEvento(db, 'affiliate_click', { userId: u.id });
+      return sendJson(res, 200, { ok: true, afiliadoStatus: u.afiliadoStatus });
     });
   }
 
@@ -426,9 +457,18 @@ async function api(req, res, pathname, method) {
   }
 
   // ----- PEDIDOS (comprar número) -----
+  if (pathname === '/api/cupons/validar' && method === 'GET') {
+    if (!user) return requireLogin();
+    const db = load();
+    const codigo = new URL(req.url, 'http://localhost').searchParams.get('codigo');
+    const v = aquisicao.validarCupom(db, codigo, user.id);
+    if (!v.ok) return sendJson(res, 400, { erro: v.erro });
+    return sendJson(res, 200, { cupom: { codigo: v.cupom.codigo, descontoPercent: v.cupom.descontoPercent || 0, descontoCentavos: v.cupom.descontoCentavos || v.cupom.bonusCentavos || 0 } });
+  }
+
   if (pathname === '/api/pedidos' && method === 'POST') {
     if (!user) return requireLogin();
-    const { servicoId, pais, ddd, precoEsperadoCentavos } = await readBody(req);
+    const { servicoId, pais, ddd, precoEsperadoCentavos, cupom: cupomCodigo, origemTrafego, utmSource, ref } = await readBody(req);
     let precoMudouDesdeATela = false;
     let precoAtualDisponivel = null;
     const paisAlvo = pais || 'BR';
@@ -517,7 +557,15 @@ async function api(req, res, pathname, method) {
       const servico = db.services.find((s) => s.id === servicoId && s.ativo);
       if (!servico) return sendJson(res, 404, { erro: 'Serviço não encontrado.' });
       const u = db.users.find((x) => x.id === user.id);
-      const precoCobrado = (compra5sim || compraSmsman) ? precoVendaCentavos : servico.precoCentavos;
+      let precoCobrado = (compra5sim || compraSmsman) ? precoVendaCentavos : servico.precoCentavos;
+      let cupomUsado = null;
+      if (cupomCodigo) {
+        const v = aquisicao.validarCupom(db, cupomCodigo, user.id);
+        if (!v.ok) return sendJson(res, 400, { erro: v.erro });
+        const desc = aquisicao.descontoCupom(v.cupom, precoCobrado);
+        precoCobrado = Math.max(1, precoCobrado - desc);
+        cupomUsado = v.cupom;
+      }
       if (u.saldoCentavos < precoCobrado) {
         return sendJson(res, 402, { erro: 'Saldo insuficiente. Adicione créditos.' });
       }
@@ -553,22 +601,21 @@ async function api(req, res, pathname, method) {
       if (slot) { slot.pedidoAtualId = order.id; }
       order.comissaoCentavos = null;
       order.comissaoAfiliadoId = null;
-      if (!slot && u.indicadoPor && order.custoReaisCentavos != null) {
-        const afiliado = db.users.find((x) => x.id === u.indicadoPor);
-        if (afiliado) {
-          const lucroVendaCentavos = order.precoPagoCentavos - order.custoReaisCentavos;
-          if (lucroVendaCentavos > 0) {
-            const comissao = Math.round(lucroVendaCentavos * 0.30);
-            afiliado.saldoComissaoCentavos = (afiliado.saldoComissaoCentavos || 0) + comissao;
-            order.comissaoCentavos = comissao;
-            order.comissaoAfiliadoId = afiliado.id;
-          }
-        }
+      order.origemTrafego = aquisicao.classificarOrigem(origemTrafego || utmSource || u.origemTrafego, ref || u.indicadoPor);
+      order.utmSource = utmSource || u.utmSource || null;
+      if (cupomUsado) {
+        order.cupomCodigo = cupomUsado.codigo;
+        cupomUsado.usos = (cupomUsado.usos || 0) + 1;
+        registrarEvento(db, 'coupon_used', { userId: user.id, servicoId: servico.id });
       }
+      const cfgAq = funil.mergeConfiguracoes(db.configuracoes).aquisicao;
+      const primeira = aquisicao.primeiraCompraDoUsuario(db, user.id, order.id);
+      aquisicao.aplicarComissao(db, u, order, cfgAq);
       db.orders.push(order);
-      registrarEvento(db, 'activation_started', { userId: user.id, servicoId: servico.id });
-      const comprasAnteriores = db.orders.filter((o) => o.userId === user.id && o.id !== order.id && o.status !== 'cancelado').length;
-      if (comprasAnteriores >= 1) registrarEvento(db, 'second_purchase', { userId: user.id, servicoId: servico.id });
+      registrarEvento(db, 'activation_started', { userId: user.id, servicoId: servico.id, origem: order.origemTrafego });
+      registrarEvento(db, primeira ? 'first_purchase' : 'repeat_purchase', { userId: user.id, servicoId: servico.id });
+      if (!primeira) registrarEvento(db, 'second_purchase', { userId: user.id, servicoId: servico.id });
+      if (order.comissaoAfiliadoId) registrarEvento(db, 'affiliate_purchase', { userId: user.id, ref: (db.users.find((x) => x.id === order.comissaoAfiliadoId) || {}).codigoAfiliado || null });
       return sendJson(res, 201, { pedido: order, saldoCentavos: u.saldoCentavos });
     });
   }
@@ -662,7 +709,7 @@ async function api(req, res, pathname, method) {
   // ----- PAGAMENTOS -----
   if (pathname === '/api/pagamentos/pix' && method === 'POST') {
     if (!user) return requireLogin();
-    const { valorReais, nomePagador, cpfPagador } = await readBody(req);
+    const { valorReais, nomePagador, cpfPagador, origemTrafego, utmSource, ref } = await readBody(req);
     if (!valorReais || valorReais < 5) return sendJson(res, 400, { erro: 'Valor mínimo de recarga: R$ 5,00.' });
     try {
       const txId = transact((db) => nextId(db, 'transactions'));
@@ -677,9 +724,10 @@ async function api(req, res, pathname, method) {
       transact((db2) => {
         db2.transactions.push({
           id: txId, userId: user.id, valorCentavos: Math.round(valorReais * 100),
-          metodo: 'pix', status: pix.status, mpPaymentId: pix.paymentId, criadoEm: new Date().toISOString()
+          metodo: 'pix', status: pix.status, mpPaymentId: pix.paymentId, criadoEm: new Date().toISOString(),
+          origemTrafego: aquisicao.classificarOrigem(origemTrafego || utmSource, ref)
         });
-        registrarEvento(db2, 'pix_started', { userId: user.id });
+        registrarEvento(db2, 'pix_started', { userId: user.id, origem: origemTrafego || utmSource || null, ref: ref || null });
       });
       return sendJson(res, 201, { transacaoId: txId, qrCode: pix.qrCode, qrCodeBase64: pix.qrCodeBase64, paymentId: pix.paymentId });
     } catch (e) {
@@ -959,7 +1007,9 @@ async function api(req, res, pathname, method) {
       return transact((db) => {
         const atual = funil.mergeConfiguracoes(db.configuracoes);
         db.configuracoes = funil.mergeConfiguracoes(Object.assign({}, atual, body, {
-          bonusPrimeiraRecarga: Object.assign({}, atual.bonusPrimeiraRecarga, body.bonusPrimeiraRecarga || {})
+          bonusPrimeiraRecarga: Object.assign({}, atual.bonusPrimeiraRecarga, body.bonusPrimeiraRecarga || {}),
+          ofertaNovos: Object.assign({}, atual.ofertaNovos, body.ofertaNovos || {}),
+          aquisicao: Object.assign({}, atual.aquisicao, body.aquisicao || {})
         }));
         return sendJson(res, 200, { configuracoes: db.configuracoes });
       });
@@ -980,6 +1030,14 @@ async function api(req, res, pathname, method) {
           id: nextId(db, 'cupons'),
           codigo,
           bonusCentavos: Math.max(0, Math.round(Number(body.bonusCentavos) || 0)),
+          descontoPercent: Math.max(0, Math.min(80, Number(body.descontoPercent) || 0)),
+          descontoCentavos: Math.max(0, Math.round(Number(body.descontoCentavos) || 0)),
+          validade: body.validade || null,
+          usosMax: body.usosMax ? Math.round(Number(body.usosMax)) : null,
+          usos: 0,
+          userId: body.userId ? Number(body.userId) : null,
+          campanha: body.campanha || null,
+          afiliadoId: body.afiliadoId ? Number(body.afiliadoId) : null,
           ativo: body.ativo !== false,
           criadoEm: new Date().toISOString()
         };
@@ -1014,37 +1072,99 @@ async function api(req, res, pathname, method) {
       return transact((db) => {
         const u = db.users.find((x) => x.id === Number(tornarAfiliadoMatch[1]));
         if (!u) return sendJson(res, 404, { erro: 'Usuário não encontrado.' });
-        if (!u.codigoAfiliado) { u.codigoAfiliado = 'AFF' + u.id; }
+        aquisicao.garantirCodigo(u);
+        u.afiliadoStatus = 'ativo';
         if (u.saldoComissaoCentavos == null) { u.saldoComissaoCentavos = 0; }
-        return sendJson(res, 200, { codigoAfiliado: u.codigoAfiliado });
+        return sendJson(res, 200, { codigoAfiliado: u.codigoAfiliado, afiliadoStatus: u.afiliadoStatus });
       });
     }
 
     if (pathname === '/api/admin/afiliados' && method === 'GET') {
       const db = load();
       const lista = db.users.map((u) => {
-        const indicados = db.users.filter((x) => x.indicadoPor === u.id).length;
-        const vendasArr = db.orders.filter((o) => o.comissaoAfiliadoId === u.id);
+        const st = aquisicao.statsIndicacao(db, u, { criar: false });
         return {
           id: u.id, nome: u.nome, email: u.email, codigoAfiliado: u.codigoAfiliado,
-          totalIndicados: indicados, totalVendasComComissao: vendasArr.length,
+          afiliadoStatus: aquisicao.papel(u),
+          totalIndicados: st.cadastros, totalVendasComComissao: st.historico.length,
           saldoComissaoCentavos: u.saldoComissaoCentavos || 0,
-          vendas: vendasArr.map((o) => ({
-            servico: o.servicoNome, valorVendaCentavos: o.precoPagoCentavos,
-            comissaoCentavos: o.comissaoCentavos, criadoEm: o.criadoEm
-          })).sort((a, b) => new Date(b.criadoEm) - new Date(a.criadoEm))
+          vendas: st.historico,
+          pagamentos: st.pagamentos
         };
-      }).filter((a) => a.totalIndicados > 0 || a.saldoComissaoCentavos > 0);
+      }).filter((a) => a.afiliadoStatus === 'pendente' || a.afiliadoStatus === 'ativo' || a.afiliadoStatus === 'bloqueado' || a.totalIndicados > 0 || a.saldoComissaoCentavos > 0);
       return sendJson(res, 200, { afiliados: lista });
+    }
+
+    const statusAfiliadoMatch = pathname.match(/^\/api\/admin\/afiliados\/(\d+)\/status$/);
+    if (statusAfiliadoMatch && method === 'PUT') {
+      const { status } = await readBody(req);
+      const permitido = ['ativo', 'bloqueado', 'pendente', 'indicacao'];
+      if (!permitido.includes(status)) return sendJson(res, 400, { erro: 'Status inválido.' });
+      return transact((db) => {
+        const u = db.users.find((x) => x.id === Number(statusAfiliadoMatch[1]));
+        if (!u) return sendJson(res, 404, { erro: 'Afiliado não encontrado.' });
+        u.afiliadoStatus = status;
+        aquisicao.garantirCodigo(u);
+        return sendJson(res, 200, { ok: true, afiliadoStatus: u.afiliadoStatus });
+      });
     }
 
     const pagarComissaoMatch = pathname.match(/^\/api\/admin\/afiliados\/(\d+)\/pagar$/);
     if (pagarComissaoMatch && method === 'POST') {
+      const body = await readBody(req);
       return transact((db) => {
         const u = db.users.find((x) => x.id === Number(pagarComissaoMatch[1]));
         if (!u) return sendJson(res, 404, { erro: 'Afiliado não encontrado.' });
-        u.saldoComissaoCentavos = 0;
-        return sendJson(res, 200, { ok: true });
+        const valor = body && body.valorCentavos != null ? Math.round(Number(body.valorCentavos)) : (u.saldoComissaoCentavos || 0);
+        if (valor <= 0) return sendJson(res, 400, { erro: 'Nada a pagar.' });
+        if (valor > (u.saldoComissaoCentavos || 0)) return sendJson(res, 400, { erro: 'Valor maior que o saldo.' });
+        u.saldoComissaoCentavos = (u.saldoComissaoCentavos || 0) - valor;
+        if (!db.pagamentosComissao) db.pagamentosComissao = [];
+        db.pagamentosComissao.push({
+          id: nextId(db, 'pagamentosComissao'),
+          userId: u.id,
+          valorCentavos: valor,
+          em: new Date().toISOString(),
+          nota: body && body.nota || null
+        });
+        return sendJson(res, 200, { ok: true, saldoComissaoCentavos: u.saldoComissaoCentavos });
+      });
+    }
+
+    if (pathname === '/api/admin/marketing' && method === 'GET') {
+      const db = load();
+      const q = new URL(req.url, 'http://localhost').searchParams;
+      const dias = Number(q.get('dias') || 30);
+      return sendJson(res, 200, {
+        hoje: aquisicao.metricasMarketing(db, 1),
+        d7: aquisicao.metricasMarketing(db, 7),
+        d30: aquisicao.metricasMarketing(db, 30),
+        d90: aquisicao.metricasMarketing(db, 90),
+        atual: aquisicao.metricasMarketing(db, dias > 0 ? dias : 30)
+      });
+    }
+
+    if (pathname === '/api/admin/campanhas' && method === 'GET') {
+      const db = load();
+      return sendJson(res, 200, { campanhas: db.campanhas || [] });
+    }
+    if (pathname === '/api/admin/campanhas' && method === 'POST') {
+      const body = await readBody(req);
+      const nome = String(body.nome || '').trim();
+      if (!nome) return sendJson(res, 400, { erro: 'Informe o nome da campanha.' });
+      return transact((db) => {
+        if (!db.campanhas) db.campanhas = [];
+        const campanha = {
+          id: nextId(db, 'campanhas'),
+          nome,
+          utmSource: String(body.utmSource || '').trim().toLowerCase().slice(0, 40),
+          utmCampaign: String(body.utmCampaign || '').trim().slice(0, 60),
+          gastoCentavos: Math.max(0, Math.round(Number(body.gastoCentavos) || 0)),
+          ativo: body.ativo !== false,
+          criadoEm: new Date().toISOString()
+        };
+        db.campanhas.push(campanha);
+        return sendJson(res, 201, { campanha, link: '/?utm_source=' + encodeURIComponent(campanha.utmSource) + (campanha.utmCampaign ? '&utm_campaign=' + encodeURIComponent(campanha.utmCampaign) : '') });
       });
     }
 
