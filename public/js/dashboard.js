@@ -585,10 +585,6 @@ document.getElementById('link-afiliado').addEventListener('click', async (e) => 
     const msgEl = document.getElementById('afiliado-msg');
     if (!msgEl.value) msgEl.value = txtBase + link;
     document.getElementById('btn-share-wa').href = 'https://wa.me/?text=' + encodeURIComponent(msgEl.value);
-    const qr = document.getElementById('afiliado-qr');
-    qr.src = 'https://api.qrserver.com/v1/create-qr-code/?size=160x160&data=' + encodeURIComponent(link);
-    const qrLink = document.getElementById('afiliado-qr-link');
-    if (qrLink) qrLink.href = link;
     const corpo = document.getElementById('afiliado-vendas-body');
     if (corpo) {
       corpo.innerHTML = (data.historico || data.vendas || []).map(v => `

@@ -1134,29 +1134,6 @@ async function api(req, res, pathname, method) {
       });
     }
 
-    if (pathname === '/api/admin/criativos/contexto' && method === 'GET') {
-      const db = load();
-      const snap = funil.snapshotPublico(db, { pixAutomatico: !!process.env.MP_ACCESS_TOKEN });
-      const aq = funil.mergeConfiguracoes(db.configuracoes).aquisicao;
-      const destaques = ['Ativação rápida', 'Pagamento via PIX', 'Tudo pelo painel', 'Número virtual'];
-      const cta = ['ACESSAR SIMSMS', 'CONHECER', 'COMPRAR NÚMERO', 'COMEÇAR AGORA', 'ACESSE SIMSMS.COM.BR'];
-      return sendJson(res, 200, {
-        marca: 'SIMSMS',
-        site: 'simsms.com.br',
-        url: 'https://www.simsms.com.br/',
-        destaques,
-        cta,
-        oferta: snap.ofertaNovos && snap.ofertaNovos.ativo ? snap.ofertaNovos : null,
-        bonus: snap.bonus && snap.bonus.ativo ? snap.bonus : null,
-        pixAutomatico: !!snap.pixAutomatico,
-        afiliados: {
-          ativo: aq.indicacaoAtiva,
-          primeiraPercent: aq.comissaoPrimeiraCompraPercent,
-          recorrente: aq.comissaoRecorrente
-        }
-      });
-    }
-
     if (pathname === '/api/admin/marketing' && method === 'GET') {
       const db = load();
       const q = new URL(req.url, 'http://localhost').searchParams;
