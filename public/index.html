@@ -10,7 +10,7 @@
 <link rel="stylesheet" href="/css/style.css">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/dist/tabler-icons.min.css">
 </head>
-<body>
+<body class="page-home">
 
 <header class="topbar">
   <div class="topbar-inner">
@@ -19,21 +19,11 @@
       SimSMS <span class="brand-rest">Virtual</span>
     </a>
     <nav class="nav-links">
+      <a href="#como">Como funciona</a>
       <a href="#catalogo">Serviços</a>
       <a href="#protegido">Garantia</a>
       <a href="/afiliados.html">Afiliados</a>
-      <a href="#faq">Dúvidas</a>
     </nav>
-    <details class="nav-drawer">
-      <summary>Menu</summary>
-      <div class="nav-drawer-panel">
-        <a href="#catalogo">Serviços</a>
-        <a href="#protegido">Garantia</a>
-        <a href="/afiliados.html">Afiliados</a>
-        <a href="#faq">Dúvidas</a>
-        <a href="/login.html">Entrar</a>
-      </div>
-    </details>
     <div class="nav-actions">
       <a href="/login.html" class="btn btn-ghost btn-sm">Entrar</a>
       <a href="/cadastro.html" class="btn btn-primary btn-sm">Criar conta</a>
@@ -43,20 +33,36 @@
 
 <section class="hero hero-sell">
   <div class="container hero-sell-grid">
-    <div>
-      <h1>Receba códigos SMS sem usar seu número pessoal.</h1>
-      <p class="lead">Números virtuais para ativação de serviços, com pagamento via PIX e código recebido diretamente no painel.</p>
+    <div class="hero-copy">
+      <p class="eyebrow"><span class="dot"></span> Número virtual · Pix · código no painel</p>
+      <h1>Ative WhatsApp, Instagram e apps <span class="accent">sem usar seu chip.</span></h1>
+      <p class="lead">Você reserva um número, paga no Pix e o SMS de verificação aparece nesta tela. Sem mensalidade. Se o código não chegar, o valor volta pro saldo.</p>
       <div class="hero-ctas">
-        <a href="#catalogo" class="btn btn-teal" id="cta-comprar">Comprar número agora</a>
-        <a href="#catalogo" class="btn btn-ghost">Ver serviços</a>
+        <a href="#catalogo" class="btn btn-teal" id="cta-comprar">Escolher serviço</a>
+        <a href="#como" class="btn btn-ghost">Ver como funciona</a>
       </div>
-      <ul class="trust-row" aria-label="Como funciona o pagamento">
-        <li>PIX</li>
-        <li>Ativação rápida</li>
-        <li>Sem mensalidade</li>
-        <li>Reembolso se o SMS não chegar</li>
-      </ul>
     </div>
+    <div class="hero-visual" aria-hidden="true">
+      <div class="phone-frame">
+        <div class="phone-notch"></div>
+        <div class="sms-demo">
+          <div class="sms-demo-top">
+            <span>Pedido ativo</span>
+            <span class="status-pill"><span class="dot"></span> SMS recebido</span>
+          </div>
+          <div class="number-reel">+55 11 9••••-4821</div>
+          <div class="bubble">
+            WhatsApp: seu código é <span class="code">847 291</span>
+          </div>
+          <p class="phone-hint">Copia e cola no app. Pronto.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div class="status-strip">
+  <div class="container">
     <aside class="live-panel" id="live-panel">
       <p class="live-title">Plataforma</p>
       <ul id="live-status">
@@ -64,17 +70,43 @@
       </ul>
     </aside>
   </div>
-</section>
+</div>
 
 <section id="bonus-banner" class="bonus-banner" hidden>
   <div class="container" id="bonus-banner-inner"></div>
+</section>
+
+<section id="como" class="section-como">
+  <div class="container">
+    <div class="section-head">
+      <div class="eyebrow">Em 3 passos</div>
+      <h2>Do Pix ao código, na mesma tela.</h2>
+    </div>
+    <div class="steps how-steps">
+      <div class="step">
+        <span class="num">01</span>
+        <h3>Escolhe o app</h3>
+        <p>WhatsApp, Instagram, Telegram, TikTok e dezenas de outros. O preço aparece em reais, na hora.</p>
+      </div>
+      <div class="step">
+        <span class="num">02</span>
+        <h3>Paga no Pix</h3>
+        <p>Adiciona saldo, confirma a compra e o número fica reservado só pro seu pedido.</p>
+      </div>
+      <div class="step">
+        <span class="num">03</span>
+        <h3>Copia o SMS</h3>
+        <p>O código cai no painel. Se não chegar no prazo, cancela e o valor volta.</p>
+      </div>
+    </div>
+  </div>
 </section>
 
 <section id="catalogo">
   <div class="container">
     <div class="section-head">
       <div class="eyebrow">Catálogo</div>
-      <h2>Escolha o serviço</h2>
+      <h2>Escolha o serviço e compre agora</h2>
     </div>
     <label class="catalog-search">
       <span class="sr-only">Buscar serviço</span>
@@ -90,8 +122,8 @@
     <div class="garantia-box">
       <div>
         <div class="eyebrow">Seu dinheiro está protegido</div>
-        <h2>Se o SMS não chegar dentro do prazo, você cancela e o valor volta para o saldo.</h2>
-        <p>O número fica reservado só para o seu pedido. Sem mensalidade. Sem fidelidade.</p>
+        <h2>SMS não chegou? Cancela. O valor volta pro saldo.</h2>
+        <p>O número fica reservado só para o seu pedido. Sem mensalidade. Sem fidelidade. Sem surpresa no cartão.</p>
       </div>
       <a href="#catalogo" class="btn btn-primary">Comprar número agora</a>
     </div>
@@ -108,26 +140,42 @@
   </div>
 </section>
 
-<section id="faq">
-  <div class="container">
+<section id="faq" class="section-faq">
+  <div class="container faq-wrap">
     <div class="section-head">
       <div class="eyebrow">Dúvidas</div>
       <h2>O que você precisa saber antes de comprar</h2>
     </div>
-    <div class="steps">
-      <div class="step">
-        <h3>Como pago?</h3>
-        <p>Adiciona saldo no Pix e compra o número. O código aparece no painel.</p>
-      </div>
-      <div class="step">
-        <h3>E se o SMS não chegar?</h3>
-        <p>Cancele no prazo. O valor volta para o saldo da conta.</p>
-      </div>
-      <div class="step">
-        <h3>Preciso de CNPJ?</h3>
-        <p>Não. Cadastro com e-mail, escolhe o serviço e paga.</p>
-      </div>
+    <div class="faq-list">
+      <details open>
+        <summary>Como pago?</summary>
+        <p>Cria a conta, adiciona saldo no Pix e compra o número. O código aparece no painel — não precisa de outro celular.</p>
+      </details>
+      <details>
+        <summary>E se o SMS não chegar?</summary>
+        <p>Cancele no prazo. O valor volta para o saldo da conta. Você usa em outro serviço ou pede outro número.</p>
+      </details>
+      <details>
+        <summary>Preciso de CNPJ?</summary>
+        <p>Não. Cadastro com e-mail, escolhe o serviço e paga. Pessoa física usa normalmente.</p>
+      </details>
+      <details>
+        <summary>O número fica meu pra sempre?</summary>
+        <p>Não. É um número reservado para receber o SMS daquela ativação. Sem mensalidade e sem chip físico.</p>
+      </details>
+      <details>
+        <summary>Dá pra indicar e ganhar?</summary>
+        <p>Sim. Cada conta tem um link de indicação. Comissão e regras ficam no painel, configuradas no admin. <a href="/afiliados.html">Ver programa de afiliados</a>.</p>
+      </details>
     </div>
+  </div>
+</section>
+
+<section class="final-cta">
+  <div class="container">
+    <h2>Pronto pra ativar sem expor seu número?</h2>
+    <p>Escolhe o app, paga no Pix e espera o código no painel.</p>
+    <a href="#catalogo" class="btn btn-teal">Ver serviços</a>
   </div>
 </section>
 
@@ -151,13 +199,5 @@
 <script src="/js/icons.js"></script>
 <script src="/js/analytics.js"></script>
 <script src="/js/main.js"></script>
-<script>
-document.querySelectorAll('.nav-drawer-panel a').forEach(function (a) {
-  a.addEventListener('click', function () {
-    var d = a.closest('details');
-    if (d) d.open = false;
-  });
-});
-</script>
 </body>
 </html>
