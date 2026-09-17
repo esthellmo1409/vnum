@@ -3,251 +3,78 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-<title>SimSMS — Números virtuais para verificação por SMS</title>
-<meta name="description" content="Número virtual, Pix e código no painel. Catálogo com preço real e países com estoque ao vivo.">
+<title>SimSMS Virtual — Número virtual para receber SMS</title>
+<meta name="description" content="Escolha o serviço, receba seu número virtual e aguarde o código no painel.">
 <link rel="canonical" href="https://www.simsms.com.br/">
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/lipis/flag-icons@7.2.3/css/flag-icons.min.css">
 <link rel="stylesheet" href="/css/home.css">
 </head>
 <body class="home">
 
-<header class="hnav">
-  <div class="hnav-bar">
-    <a href="/" class="hbrand"><span class="hmark" aria-hidden="true">S</span> SimSMS</a>
-    <nav class="hnav-links" id="nav-links">
-      <a href="#numbers">Números</a>
-      <a href="#countries">Países</a>
-      <a href="#services">Serviços</a>
-      <a href="#faq">FAQ</a>
-    </nav>
-    <div class="hnav-end">
-      <a href="/login.html" class="hbtn hbtn-ghost">Entrar</a>
-      <a href="/cadastro.html" class="hbtn hbtn-solid">Começar</a>
-      <button type="button" class="hburger" id="nav-toggle" aria-label="Abrir menu" aria-expanded="false"><span></span><span></span></button>
-    </div>
+<header class="nav">
+  <a href="/" class="brand"><span class="mark">S</span> SimSMS</a>
+  <div class="nav-end">
+    <a href="/login.html" class="btn btn-ghost">Entrar</a>
+    <a href="/cadastro.html" class="btn btn-fill">Criar conta</a>
   </div>
 </header>
 
-<section class="hhero">
-  <div class="hwrap hhero-grid">
-    <div class="hhero-copy">
-      <h1>Números virtuais.<br><em>Na hora. Sem o seu chip.</em></h1>
-      <p class="hlead">Receba o SMS de verificação no painel. Pagamento no Pix. Preço e disponibilidade vêm do catálogo — não de uma lista genérica.</p>
-      <div class="hctas">
-        <a href="#services" class="hbtn hbtn-solid hbtn-lg" id="cta-comprar">Pegar um número <span class="harrow">→</span></a>
-        <a href="#countries" class="hbtn hbtn-line hbtn-lg">Ver países</a>
-      </div>
-      <p class="hmeta" id="hero-meta">Carregando catálogo…</p>
+<section class="hero">
+  <div class="wrap hero-grid">
+    <div>
+      <p class="kicker">Números virtuais</p>
+      <h1>Receba o SMS.<br>Sem comprar chip.</h1>
+      <p class="lead">Escolha o serviço, receba seu número virtual e aguarde o código.</p>
+      <a href="/cadastro.html" class="btn btn-fill btn-lg" id="cta-comprar">Começar agora</a>
     </div>
-    <aside class="hpanel" id="buy-panel">
-      <div class="hpanel-top">
-        <span>Virtual number</span>
-        <span class="hpulse" id="panel-live">Ao vivo</span>
-      </div>
-      <label class="hfield">
-        <span class="sr-only">Buscar serviço</span>
-        <input type="search" id="panel-search" placeholder="Buscar serviço…" autocomplete="off">
-      </label>
-      <p class="hlabel">Popular</p>
-      <div class="hpills" id="panel-popular"></div>
-      <dl class="hrows">
-        <div><dt>País</dt><dd id="panel-country">—</dd></div>
-        <div><dt>Preço</dt><dd id="panel-price">—</dd></div>
-        <div><dt>Estoque</dt><dd id="panel-stock"><i class="hdot"></i> —</dd></div>
-      </dl>
-      <button type="button" class="hbtn hbtn-solid hbtn-block" id="panel-buy" disabled>Get number <span class="harrow">→</span></button>
+    <aside class="screen" id="live">
+      <p class="screen-app" id="live-app">WhatsApp</p>
+      <p class="screen-num">🇧🇷 +55 •• •••••-••••</p>
+      <p class="screen-status" id="live-status"><i></i> Aguardando SMS</p>
+      <div class="screen-box" id="live-box">Código aparecerá aqui</div>
     </aside>
   </div>
 </section>
 
-<section id="bonus-banner" class="hbonus" hidden>
-  <div class="hwrap" id="bonus-banner-inner"></div>
-</section>
-
-<section class="hstats" id="stats">
-  <div class="hwrap hstats-grid" id="stats-grid"></div>
-</section>
-
-<section id="services" class="hsec">
-  <div class="hwrap">
-    <header class="hhead">
-      <p class="hkicker">Popular services</p>
-      <h2>Os apps que o catálogo já vende.</h2>
-    </header>
-    <div class="hcards" id="popular-grid"></div>
+<section id="servicos" class="sec">
+  <div class="wrap">
+    <h2>Escolha seu serviço</h2>
+    <div class="svc" id="popular-grid"></div>
   </div>
 </section>
 
-<section id="countries" class="hsec hsec-dim">
-  <div class="hwrap">
-    <header class="hhead hhead-center">
-      <p class="hkicker">Global coverage</p>
-      <h2>Números virtuais no mapa real.</h2>
-      <p class="hsub" id="coverage-lead">Países com estoque ao vivo. Sem lista inventada.</p>
-    </header>
-    <div class="coverage">
-      <div class="world-frame">
-        <div class="world-map" id="world-map"></div>
-        <div class="map-tip" id="map-tip" hidden>
-          <strong id="map-tip-name"></strong>
-          <p class="hok"><i class="hdot"></i> Disponível</p>
-          <p id="map-tip-price"></p>
-          <a href="#numbers" class="hbtn hbtn-solid hbtn-sm">Ver números →</a>
-        </div>
-      </div>
-      <aside class="coverage-panel">
-        <p class="hkicker">Network</p>
-        <h3 id="coverage-count">—</h3>
-        <p>Estoque checado em tempo real no provedor.</p>
-        <p class="hlabel">Destinos com estoque</p>
-        <ul class="hflags" id="country-list"></ul>
-        <a href="#numbers" class="hbtn hbtn-line">Explorar catálogo <span class="harrow">→</span></a>
-      </aside>
-    </div>
-    <div class="coverage-picks" id="coverage-picks"></div>
-    <div class="hstats-grid coverage-stats" id="coverage-stats"></div>
-  </div>
-</section>
-
-<section id="how" class="hsec">
-  <div class="hwrap">
-    <header class="hhead">
-      <p class="hkicker">How it works</p>
-      <h2>Três passos. Código na tela.</h2>
-    </header>
-    <ol class="hsteps">
-      <li>
-        <span>01</span>
-        <h3>Escolhe o serviço</h3>
-        <p>A plataforma que precisa da verificação. O preço é o do catálogo, em reais.</p>
-      </li>
-      <li>
-        <span>02</span>
-        <h3>Escolhe o país</h3>
-        <p>Número de um país com estoque agora. Brasil por padrão; outros quando o provedor tiver.</p>
-      </li>
-      <li>
-        <span>03</span>
-        <h3>Recebe o SMS</h3>
-        <p>Paga no Pix e copia o código no painel. Se não chegar no prazo, cancela e o valor volta ao saldo.</p>
-      </li>
+<section id="como" class="sec">
+  <div class="wrap">
+    <ol class="steps">
+      <li><span>01</span> Escolha</li>
+      <li><span>02</span> Receba</li>
+      <li><span>03</span> Ative</li>
     </ol>
   </div>
 </section>
 
-<section id="availability" class="hsec hsec-dim">
-  <div class="hwrap">
-    <header class="hhead">
-      <p class="hkicker">Inventory</p>
-      <h2>Sempre dá para ver o que está no ar.</h2>
-      <p class="hsub">Países com estoque reportado agora. Sem quantidade estimada.</p>
-    </header>
-    <div class="hdash" id="avail-list"></div>
+<section id="garantia" class="sec">
+  <div class="wrap note">
+    <h2>Não recebeu o SMS?</h2>
+    <p>Quando as regras da ativação permitirem, o valor retorna para seu saldo.</p>
   </div>
 </section>
 
-<section id="numbers" class="hsec">
-  <div class="hwrap">
-    <header class="hhead">
-      <p class="hkicker">Catalog</p>
-      <h2>Tudo que dá para comprar hoje</h2>
-    </header>
-    <label class="hfield hfield-wide">
-      <span class="sr-only">Buscar no catálogo</span>
-      <input type="search" id="busca-servico" placeholder="Qual serviço você precisa?" autocomplete="off">
-    </label>
-    <div class="hfilters" id="cat-filters"></div>
-    <div class="hcards hcards-all" id="services-grid"></div>
+<section class="cta">
+  <div class="wrap">
+    <h2>Pronto para receber seu código?</h2>
+    <a href="/cadastro.html" class="btn btn-fill btn-lg">Começar agora</a>
   </div>
 </section>
 
-<section id="protegido" class="hsec">
-  <div class="hwrap hguard">
-    <div>
-      <p class="hkicker">Saldo</p>
-      <h2>SMS não chegou? Cancela. O valor volta.</h2>
-      <p class="hsub">Número reservado só para o pedido. Sem mensalidade. Sem fidelidade.</p>
-    </div>
-    <a href="#numbers" class="hbtn hbtn-solid">Comprar agora <span class="harrow">→</span></a>
-  </div>
-</section>
-
-<section class="htrust">
-  <div class="hwrap htrust-grid">
-    <div><strong>Pagamento no Pix</strong><span>Saldo na conta, depois a compra</span></div>
-    <div><strong>Estoque ao vivo</strong><span>Países a partir da checagem do provedor</span></div>
-    <div><strong>Ativação no painel</strong><span>Número preso ao seu pedido</span></div>
-    <div><strong>Cobertura real</strong><span>Só entra na lista o que o sistema devolve</span></div>
-  </div>
-</section>
-
-<section id="faq" class="hsec">
-  <div class="hwrap hfaq">
-    <header class="hhead">
-      <p class="hkicker">FAQ</p>
-      <h2>Antes de comprar</h2>
-    </header>
-    <div class="hfaq-list">
-      <details open>
-        <summary>Como pago?</summary>
-        <p>Cria a conta, adiciona saldo no Pix e compra o número. O SMS aparece no painel.</p>
-      </details>
-      <details>
-        <summary>E se o SMS não chegar?</summary>
-        <p>Cancela no prazo. O valor volta para o saldo da SimSMS.</p>
-      </details>
-      <details>
-        <summary>Preciso de CNPJ?</summary>
-        <p>Não. Cadastro com e-mail, escolhe o serviço e paga.</p>
-      </details>
-      <details>
-        <summary>O número fica meu?</summary>
-        <p>Não. Serve para aquela verificação. Sem plano mensal e sem chip físico.</p>
-      </details>
-      <details>
-        <summary>Tem indicação?</summary>
-        <p>Sim. <a href="/afiliados.html">Programa de afiliados</a> — regras no painel.</p>
-      </details>
-    </div>
-  </div>
-</section>
-
-<section class="hcta">
-  <div class="hwrap">
-    <h2>Pegue o número hoje.</h2>
-    <p>Ativação no painel. País com estoque. Preço do catálogo.</p>
-    <a href="/cadastro.html" class="hbtn hbtn-solid hbtn-lg">Começar <span class="harrow">→</span></a>
-  </div>
-</section>
-
-<footer class="hfoot">
-  <div class="hwrap hfoot-grid">
-    <div>
-      <a href="/" class="hbrand"><span class="hmark">S</span> SimSMS</a>
-      <p>Números virtuais para SMS de verificação.</p>
-    </div>
+<footer class="foot">
+  <div class="wrap foot-row">
+    <a href="/" class="brand"><span class="mark">S</span> SimSMS</a>
     <nav>
-      <p>Produto</p>
-      <a href="#numbers">Números</a>
-      <a href="#countries">Países</a>
-      <a href="#services">Serviços</a>
-      <a href="#faq">FAQ</a>
-    </nav>
-    <nav>
-      <p>Conta</p>
-      <a href="/login.html">Entrar</a>
-      <a href="/cadastro.html">Cadastro</a>
-      <a href="/afiliados.html">Afiliados</a>
-    </nav>
-    <nav>
-      <p>Suporte</p>
-      <a href="https://wa.me/556781730376" rel="noopener" target="_blank">WhatsApp</a>
-      <a href="/numero-virtual">O que é número virtual</a>
-      <a href="/numero-virtual-whatsapp">WhatsApp</a>
-      <a href="/numero-virtual-instagram">Instagram</a>
+      <a href="#como">Como funciona</a>
+      <a href="#garantia">Garantia</a>
+      <a href="https://wa.me/556781730376" rel="noopener" target="_blank">Suporte</a>
     </nav>
   </div>
-  <div class="hwrap hcopy">© 2026 SimSMS</div>
 </footer>
 
 <script src="/js/origem.js"></script>
