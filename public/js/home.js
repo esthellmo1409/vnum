@@ -357,13 +357,6 @@ function renderPaises() {
   });
 }
 
-function renderApiSnippet() {
-  var s = catalogo[0];
-  var sample = s ? { nome: s.nome, pais: s.pais || 'BR', precoCentavos: s.precoCentavos } : {};
-  document.getElementById('api-snippet').innerHTML = '<code>GET /api/catalogo\n\n{\n  "servicos": [\n    ' + JSON.stringify(sample, null, 0).replace(/,/g, ', ') + '\n  ]\n}</code>';
-}
-
-function navMobile() {
   var btn = document.getElementById('nav-toggle');
   var links = document.getElementById('nav-links');
   btn.addEventListener('click', function () {
@@ -403,7 +396,6 @@ Promise.all([
   renderCatalogo();
   renderPaises();
   renderStats(publico);
-  renderApiSnippet();
   if (publico.bonus && publico.bonus.ativo) {
     var box = document.getElementById('bonus-banner');
     box.hidden = false;

@@ -257,11 +257,6 @@ button, input { font: inherit; }
   border: 1px solid var(--line); border-radius: 20px; padding: 28px;
   background: linear-gradient(180deg, rgba(36,84,255,.12), transparent);
 }
-.hcode {
-  margin: 0; padding: 20px; border-radius: 16px; border: 1px solid var(--line);
-  background: #05060a; color: #c9cfe0; font-family: var(--mono); font-size: 13px; overflow: auto;
-  line-height: 1.6;
-}
 
 .htrust { padding: 28px 0; border-top: 1px solid var(--line); }
 .htrust-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; }
