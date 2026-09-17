@@ -214,7 +214,7 @@ section { padding: 72px 0; position: relative; z-index: 1; }
 .section-head .eyebrow { margin-bottom: 14px; }
 .section-head h2 { font-size: 32px; margin-bottom: 12px; color: var(--text); }
 
-/* Como funciona: sequência real de 3 passos */
+/* Compra: catálogo, Pix, painel */
 .steps { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; }
 .step { background: #FFFFFF; border: 1px solid var(--border); border-radius: var(--radius); padding: 26px; box-shadow: var(--shadow-sm); }
 .step .num { font-family: var(--mono); color: var(--amber); font-size: 13px; margin-bottom: 14px; display: block; }
@@ -698,8 +698,21 @@ td { padding: 12px; border-bottom: 1px solid var(--border); color: var(--text); 
 }
 @keyframes act-pulse { 70% { box-shadow: 0 0 0 8px rgba(18,130,91,0); } }
 
-.step-art { margin-bottom: 16px; }
-.step-art svg { width: 100%; height: auto; display: block; }
+.step-mock {
+  display: flex; flex-direction: column; gap: 6px;
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: 12px; padding: 12px 14px; margin-bottom: 16px; min-height: 92px;
+  justify-content: center;
+}
+.step-mock span {
+  display: block; font-size: 13px; font-weight: 600; color: var(--text-dim);
+  padding: 6px 10px; border-radius: 8px; background: #fff; border: 1px solid var(--border);
+}
+.step-mock span.on { color: var(--primary); border-color: #D3DEFF; background: var(--primary-dim); }
+.step-mock.pix strong { font-size: 18px; color: var(--text); }
+.step-mock.pix em { font-size: 13px; color: var(--text-dim); font-style: normal; }
+.step-mock.sms em { font-size: 12px; color: var(--text-dim); font-style: normal; }
+.step-mock.sms strong { font-family: var(--mono); font-size: 22px; letter-spacing: .08em; color: var(--text); }
 
 @media (prefers-reduced-motion: reduce) {
   .flag-track, .act-wait i { animation: none; }
