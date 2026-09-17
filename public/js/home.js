@@ -31,12 +31,14 @@ function irComprar(servicoId) {
 
 var CATS = ['Mais procurados', 'Redes sociais', 'Mensageiros', 'Marketplaces', 'IA', 'Delivery', 'Games', 'Outros'];
 var POPULAR = ['whatsapp', 'telegram', 'google', 'instagram', 'facebook', 'tiktok'];
-var MAP = { US: [118, 78], GB: [188, 62], BR: [128, 148], CA: [108, 58], DE: [208, 68], FR: [196, 74], IN: [268, 108], ES: [186, 82], PT: [178, 86], MX: [92, 108], AR: [132, 172], CL: [122, 176], CO: [114, 128], PE: [116, 148] };
+var DESTINOS = ['US', 'BR', 'ES', 'GB', 'DE', 'FR', 'IN', 'CA'];
 
 var catalogo = [];
 var filtroCat = 'Mais procurados';
 var selecionado = null;
 var paisesIso = [];
+var precoPaisCache = {};
+var mapaPronto = false;
 
 function acharServico(chave) {
   var exact = catalogo.find(function (x) { return (x.nome || '').toLowerCase() === chave; });
@@ -216,40 +218,143 @@ function animarContadores() {
   document.querySelectorAll('[data-count]').forEach(function (el) { io.observe(el); });
 }
 
-function renderPaises() {
+function minPrecoCatalogo() {
+  return catalogo.reduce(function (acc, s) {
+    if (s.precoCentavos == null) return acc;
+    return acc == null ? s.precoCentavos : Math.min(acc, s.precoCentavos);
+  }, null);
+}
+
+function precoPais(iso) {
+  iso = String(iso || '').toUpperCase();
+  if (iso === 'BR') {
+    var min = minPrecoCatalogo();
+    return Promise.resolve(min != null ? 'A partir de R$ ' + centavosParaReais(min) : null);
+  }
+  if (Object.prototype.hasOwnProperty.call(precoPaisCache, iso)) {
+    return Promise.resolve(precoPaisCache[iso]);
+  }
+  var svc = acharServico('whatsapp') || catalogo[0];
+  if (!svc) {
+    precoPaisCache[iso] = null;
+    return Promise.resolve(null);
+  }
+  return fetch('/api/precos/internacional?pais=' + encodeURIComponent(iso) + '&servico=' + encodeURIComponent(svc.nome))
+    .then(function (r) { return r.json(); })
+    .then(function (d) {
+      precoPaisCache[iso] = d && d.precoCentavos != null ? 'A partir de R$ ' + centavosParaReais(d.precoCentavos) : null;
+      return precoPaisCache[iso];
+    })
+    .catch(function () {
+      precoPaisCache[iso] = null;
+      return null;
+    });
+}
+
+function isosDisponiveis() {
   var isos = paisesIso.slice();
   if (!isos.length) {
     var set = {};
     catalogo.forEach(function (s) { set[(s.pais || 'BR').toUpperCase()] = true; });
     isos = Object.keys(set);
   }
-  var prefer = ['US', 'GB', 'BR', 'CA', 'DE', 'FR', 'IN', 'ES'];
-  function rank(iso) {
-    var i = prefer.indexOf(iso);
-    return i < 0 ? 80 : i;
+  return isos;
+}
+
+function mostrarTip(iso, evt) {
+  var tip = document.getElementById('map-tip');
+  document.getElementById('map-tip-name').textContent = nomePais(iso);
+  document.getElementById('map-tip-price').textContent = '';
+  tip.hidden = false;
+  moverTip(evt);
+  precoPais(iso).then(function (txt) {
+    var el = document.getElementById('map-tip-price');
+    if (el) el.textContent = txt || '';
+  });
+}
+
+function moverTip(evt) {
+  var tip = document.getElementById('map-tip');
+  var frame = document.querySelector('.world-frame');
+  if (!tip || tip.hidden || !frame) return;
+  var box = frame.getBoundingClientRect();
+  var x = evt.clientX - box.left + 14;
+  var y = evt.clientY - box.top + 14;
+  if (x + 220 > box.width) x = box.width - 230;
+  if (y + 140 > box.height) y = box.height - 150;
+  if (x < 8) x = 8;
+  if (y < 8) y = 8;
+  tip.style.left = x + 'px';
+  tip.style.top = y + 'px';
+}
+
+function ligarMapa(svg) {
+  var on = {};
+  isosDisponiveis().forEach(function (iso) { on[iso.toLowerCase()] = true; });
+  svg.querySelectorAll('path[id]').forEach(function (path) {
+    var iso = path.id.toUpperCase();
+    if (!on[path.id.toLowerCase()]) return;
+    path.classList.add('is-on');
+    path.setAttribute('tabindex', '0');
+    path.setAttribute('role', 'button');
+    path.setAttribute('aria-label', nomePais(iso));
+    path.addEventListener('mouseenter', function (e) {
+      path.classList.add('is-hover');
+      mostrarTip(iso, e);
+    });
+    path.addEventListener('mousemove', moverTip);
+    path.addEventListener('mouseleave', function () {
+      path.classList.remove('is-hover');
+      document.getElementById('map-tip').hidden = true;
+    });
+    path.addEventListener('focus', function (e) { mostrarTip(iso, e); });
+    path.addEventListener('click', function () {
+      window.location.hash = 'numbers';
+    });
+  });
+}
+
+function renderPaises() {
+  var isos = isosDisponiveis();
+  var n = isos.length;
+  var lead = document.getElementById('coverage-lead');
+  if (lead && n) {
+    lead.textContent = 'Acesso a números de verificação em ' + n + ' países com estoque ao vivo.';
   }
-  isos.sort(function (a, b) { return rank(a) - rank(b); });
-  var top = isos.slice(0, 8);
-  document.getElementById('country-list').innerHTML = top.map(function (iso) {
+  var count = document.getElementById('coverage-count');
+  if (count) count.textContent = n ? n + ' países' : 'Cobertura';
+  var dest = DESTINOS.filter(function (iso) { return isos.indexOf(iso) !== -1; }).slice(0, 5);
+  if (!dest.length) dest = isos.slice(0, 5);
+  document.getElementById('country-list').innerHTML = dest.map(function (iso) {
     return '<li><span class="fi fi-' + iso.toLowerCase() + '"></span> ' + nomePais(iso) + '</li>';
   }).join('') || '<li>Brasil</li>';
-  var dots = document.getElementById('map-dots');
-  dots.innerHTML = top.map(function (iso) {
-    var p = MAP[iso];
-    if (!p) return '';
-    return '<circle class="hpin-glow" cx="' + p[0] + '" cy="' + p[1] + '" r="10"/><circle class="hpin" cx="' + p[0] + '" cy="' + p[1] + '" r="3.5"/>';
+  document.getElementById('coverage-picks').innerHTML = dest.slice(0, 4).map(function (iso) {
+    return '<div><strong>' + nomePais(iso) + '</strong><div class="hok"><i class="hdot"></i> Disponível</div></div>';
   }).join('');
-  document.getElementById('avail-list').innerHTML = (function () {
-    if (!isos.length) return '<p class="empty">Estoque internacional ainda sem retorno. O catálogo segue no Brasil.</p>';
-    var rows = top.map(function (iso) {
-      return '<div class="hdash-row"><span><span class="fi fi-' + iso.toLowerCase() + '"></span> ' + nomePais(iso) + '</span><span class="hok"><i class="hdot"></i> Em estoque</span></div>';
-    }).join('');
-    var resto = isos.length - top.length;
-    if (resto > 0) {
-      rows += '<div class="hdash-row"><span>+ ' + resto + ' países com estoque agora</span><span class="hok">Ao vivo</span></div>';
-    }
-    return rows;
-  })();
+  var items = [];
+  if (n) items.push({ n: n, l: 'Países' });
+  if (catalogo.length) items.push({ n: catalogo.length, l: 'Serviços' });
+  var min = minPrecoCatalogo();
+  if (min != null) items.push({ t: 'R$ ' + centavosParaReais(min), l: 'A partir de' });
+  document.getElementById('coverage-stats').innerHTML = items.map(function (x) {
+    if (x.n != null) return '<div class="hstat"><b>' + x.n + '</b><span>' + x.l + '</span></div>';
+    return '<div class="hstat"><b>' + x.t + '</b><span>' + x.l + '</span></div>';
+  }).join('');
+  if (mapaPronto) return;
+  mapaPronto = true;
+  fetch('/img/world.svg').then(function (r) { return r.text(); }).then(function (xml) {
+    var host = document.getElementById('world-map');
+    host.innerHTML = xml;
+    var svg = host.querySelector('svg');
+    if (!svg) return;
+    svg.removeAttribute('width');
+    svg.removeAttribute('height');
+    svg.setAttribute('aria-label', 'Mapa de países com estoque');
+    ligarMapa(svg);
+  }).catch(function () {
+    mapaPronto = false;
+    document.getElementById('world-map').innerHTML = '<p class="empty">Mapa indisponível. Use a lista ao lado.</p>';
+  });
 }
 
 function renderApiSnippet() {

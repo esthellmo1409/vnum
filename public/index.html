@@ -80,25 +80,33 @@
 </section>
 
 <section id="countries" class="hsec hsec-dim">
-  <div class="hwrap hsplit">
-    <div>
-      <header class="hhead">
-        <p class="hkicker">Coverage</p>
-        <h2>Números de onde há estoque.</h2>
-        <p class="hsub">Lista ao vivo do provedor. Sem país inventado para encher a tela.</p>
-      </header>
-      <ul class="hflags" id="country-list"></ul>
+  <div class="hwrap">
+    <header class="hhead hhead-center">
+      <p class="hkicker">Global coverage</p>
+      <h2>Números virtuais no mapa real.</h2>
+      <p class="hsub" id="coverage-lead">Países com estoque ao vivo. Sem lista inventada.</p>
+    </header>
+    <div class="coverage">
+      <div class="world-frame">
+        <div class="world-map" id="world-map"></div>
+        <div class="map-tip" id="map-tip" hidden>
+          <strong id="map-tip-name"></strong>
+          <p class="hok"><i class="hdot"></i> Disponível</p>
+          <p id="map-tip-price"></p>
+          <a href="#numbers" class="hbtn hbtn-solid hbtn-sm">Ver números →</a>
+        </div>
+      </div>
+      <aside class="coverage-panel">
+        <p class="hkicker">Network</p>
+        <h3 id="coverage-count">—</h3>
+        <p>Estoque checado em tempo real no provedor.</p>
+        <p class="hlabel">Destinos com estoque</p>
+        <ul class="hflags" id="country-list"></ul>
+        <a href="#numbers" class="hbtn hbtn-line">Explorar catálogo <span class="harrow">→</span></a>
+      </aside>
     </div>
-    <div class="hmap" aria-hidden="true">
-      <svg viewBox="0 0 400 220" class="hmap-svg">
-        <ellipse cx="200" cy="110" rx="168" ry="86" fill="none" stroke="rgba(255,255,255,.08)"/>
-        <ellipse cx="200" cy="110" rx="112" ry="86" fill="none" stroke="rgba(255,255,255,.06)"/>
-        <ellipse cx="200" cy="110" rx="52" ry="86" fill="none" stroke="rgba(255,255,255,.05)"/>
-        <line x1="32" y1="110" x2="368" y2="110" stroke="rgba(255,255,255,.06)"/>
-        <line x1="200" y1="24" x2="200" y2="196" stroke="rgba(255,255,255,.05)"/>
-        <g id="map-dots"></g>
-      </svg>
-    </div>
+    <div class="coverage-picks" id="coverage-picks"></div>
+    <div class="hstats-grid coverage-stats" id="coverage-stats"></div>
   </div>
 </section>
 
