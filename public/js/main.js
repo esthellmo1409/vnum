@@ -103,19 +103,6 @@ async function carregarPublico() {
     if (p.servicosDisponiveis) linhas.push('<li><span class="ok-dot"></span> ' + p.servicosDisponiveis + ' serviços no catálogo</li>');
     live.innerHTML = linhas.join('');
 
-    const prova = [];
-    if (p.ativacoes) prova.push(['Ativações concluídas', p.ativacoes]);
-    if (p.clientes) prova.push(['Clientes cadastrados', p.clientes]);
-    if (p.servicosDisponiveis) prova.push(['Serviços', p.servicosDisponiveis]);
-    if (p.paises) prova.push(['Países com movimento', p.paises]);
-    if (p.taxaSucesso7d != null) prova.push(['Entrega (7 dias)', p.taxaSucesso7d + '%']);
-    if (prova.length) {
-      document.getElementById('prova').hidden = false;
-      document.getElementById('prova-grid').innerHTML = prova.map(function (item) {
-        return '<div class="metric-card"><div class="label">' + item[0] + '</div><div class="value">' + item[1] + '</div></div>';
-      }).join('');
-    }
-
     if (p.bonus && p.bonus.ativo) {
       const box = document.getElementById('bonus-banner');
       box.hidden = false;
