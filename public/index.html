@@ -16,7 +16,7 @@
   <div class="topbar-inner">
     <a href="/" class="brand">
       <span class="brand-mark" aria-hidden="true">SS</span>
-      SimSMS Virtual
+      SimSMS <span class="brand-rest">Virtual</span>
     </a>
     <nav class="nav-links">
       <a href="#catalogo">Serviços</a>
@@ -24,6 +24,16 @@
       <a href="/afiliados.html">Afiliados</a>
       <a href="#faq">Dúvidas</a>
     </nav>
+    <details class="nav-drawer">
+      <summary>Menu</summary>
+      <div class="nav-drawer-panel">
+        <a href="#catalogo">Serviços</a>
+        <a href="#protegido">Garantia</a>
+        <a href="/afiliados.html">Afiliados</a>
+        <a href="#faq">Dúvidas</a>
+        <a href="/login.html">Entrar</a>
+      </div>
+    </details>
     <div class="nav-actions">
       <a href="/login.html" class="btn btn-ghost btn-sm">Entrar</a>
       <a href="/cadastro.html" class="btn btn-primary btn-sm">Criar conta</a>
@@ -141,5 +151,13 @@
 <script src="/js/icons.js"></script>
 <script src="/js/analytics.js"></script>
 <script src="/js/main.js"></script>
+<script>
+document.querySelectorAll('.nav-drawer-panel a').forEach(function (a) {
+  a.addEventListener('click', function () {
+    var d = a.closest('details');
+    if (d) d.open = false;
+  });
+});
+</script>
 </body>
 </html>
