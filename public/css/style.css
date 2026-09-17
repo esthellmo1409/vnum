@@ -214,7 +214,7 @@ section { padding: 72px 0; position: relative; z-index: 1; }
 .section-head .eyebrow { margin-bottom: 14px; }
 .section-head h2 { font-size: 32px; margin-bottom: 12px; color: var(--text); }
 
-/* Compra: catálogo, Pix, painel */
+/* Compra: app, número, código */
 .steps { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; }
 .step { background: #FFFFFF; border: 1px solid var(--border); border-radius: var(--radius); padding: 26px; box-shadow: var(--shadow-sm); }
 .step .num { font-family: var(--mono); color: var(--amber); font-size: 13px; margin-bottom: 14px; display: block; }
@@ -709,9 +709,9 @@ td { padding: 12px; border-bottom: 1px solid var(--border); color: var(--text); 
   padding: 6px 10px; border-radius: 8px; background: #fff; border: 1px solid var(--border);
 }
 .step-mock span.on { color: var(--primary); border-color: #D3DEFF; background: var(--primary-dim); }
-.step-mock.pix strong { font-size: 18px; color: var(--text); }
-.step-mock.pix em { font-size: 13px; color: var(--text-dim); font-style: normal; }
+.step-mock.phone em,
 .step-mock.sms em { font-size: 12px; color: var(--text-dim); font-style: normal; }
+.step-mock.phone strong { font-family: var(--mono); font-size: 16px; letter-spacing: .04em; color: var(--text); }
 .step-mock.sms strong { font-family: var(--mono); font-size: 22px; letter-spacing: .08em; color: var(--text); }
 
 @media (prefers-reduced-motion: reduce) {
