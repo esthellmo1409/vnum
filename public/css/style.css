@@ -361,7 +361,7 @@ footer .container { display: flex; justify-content: space-between; align-items: 
 .side-link:hover { background: #FFFFFF; color: var(--text); }
 .side-link.active { background: var(--primary-dim); color: var(--primary-dark); border: 1px solid #D3DEFF; }
 .side-spacer { flex: 1; }
-.main { flex: 1; padding: 32px 40px; max-width: 1080px; background: #FFFFFF; }
+.main { flex: 1; padding: 32px 40px; max-width: 1080px; background: #FFFFFF; min-width: 0; }
 .page-head { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 28px; flex-wrap: wrap; gap: 16px; }
 .page-head h1 { font-size: 26px; color: var(--text); }
 
@@ -482,12 +482,27 @@ td { padding: 12px; border-bottom: 1px solid var(--border); color: var(--text); 
   .steps, .grid-services { grid-template-columns: repeat(2, 1fr); }
   .whatsapp-grid { grid-template-columns: 1fr; }
   .metrics-grid { grid-template-columns: repeat(2, 1fr); }
-  .garantia-box { padding: 24px; }
+  .garantia-box { padding: 20px 16px; }
   .nav-links { display: none; }
   .app-shell { flex-direction: column; }
-  .sidebar { width: 100%; height: auto; flex-direction: row; overflow-x: auto; position: static; }
+  .sidebar {
+    width: 100%;
+    height: auto;
+    flex-direction: row;
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    overflow-y: hidden;
+    position: sticky;
+    top: 0;
+    z-index: 45;
+    gap: 6px;
+    padding: 10px 12px;
+    -webkit-overflow-scrolling: touch;
+  }
+  .sidebar .brand { display: none; }
+  .side-link { flex-shrink: 0; white-space: nowrap; padding: 8px 10px; font-size: 13px; }
   .side-spacer { display: none; }
-  .main { padding: 24px 16px; }
+  .main { padding: 16px 12px 24px; }
 }
 
 .brand-dot {
@@ -548,9 +563,35 @@ td { padding: 12px; border-bottom: 1px solid var(--border); color: var(--text); 
 .confirm-meta { font-size: 14px; color: var(--text-dim); margin: 0 0 8px; }
 #pedido-sms.bubble { opacity: 1; animation: none; }
 @media (max-width: 860px) {
-  .hero-sell-grid, .dash-kpis, .pack-grid { grid-template-columns: 1fr 1fr; }
-  .hero-sell h1 { font-size: 28px; }
-  .nav-links { display: none; }
+  html, body { overflow-x: hidden; }
+  .container { padding: 0 16px; }
+  .topbar-inner { padding: 10px 12px; gap: 8px; flex-wrap: wrap; }
+  .brand { font-size: 15px; }
+  .hero { padding: 36px 0 28px; }
+  .hero h1 { font-size: 28px; }
+  .hero p.lead { font-size: 16px; margin-bottom: 20px; }
+  .hero-ctas { margin-bottom: 20px; }
+  .hero-ctas .btn { flex: 1; min-width: 140px; }
+  .hero-sell { padding: 28px 0 20px; }
+  .hero-sell h1 { font-size: 26px; max-width: none; }
+  .hero-sell-grid { grid-template-columns: 1fr; gap: 20px; }
+  .dash-kpis, .pack-grid { grid-template-columns: 1fr 1fr; }
+  .catalog-grid { grid-template-columns: 1fr; }
+  .footer-links { flex-direction: column; }
+  .garantia-box h2 { font-size: 22px; }
+  .page-head { margin-bottom: 16px; }
+  .page-head h1 { font-size: 22px; }
+  .table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  .pedidos-col table { min-width: 620px; }
+  .dashboard-grid { display: flex; flex-direction: column; gap: 16px; }
+  .catalogo-col { order: -1; }
+  .quick-bar { gap: 8px; }
+  .quick-bar .pill, .quick-bar .btn { white-space: normal; text-align: center; }
+  .filters-bar input { min-width: 0; width: 100%; }
+  .modal { padding: 18px 14px; max-width: 100%; }
+  .qr-box img { width: 160px; height: 160px; }
+  .afiliado-kpis { grid-template-columns: 1fr 1fr !important; }
+  #suporte-menu-sidebar { left: 0 !important; top: 100% !important; margin-left: 0 !important; }
   .mobile-dock {
     display: flex; position: fixed; bottom: 0; left: 0; right: 0; z-index: 80;
     background: #fff; border-top: 1px solid var(--border);
@@ -563,4 +604,13 @@ td { padding: 12px; border-bottom: 1px solid var(--border); color: var(--text); 
     text-decoration: none; min-width: 64px;
   }
   body.has-dock { padding-bottom: 72px; }
+}
+@media (max-width: 480px) {
+  .dash-kpis, .pack-grid, .afiliado-kpis { grid-template-columns: 1fr !important; }
+  .hero-ctas { flex-direction: column; }
+  .hero-ctas .btn { width: 100%; }
+  .nav-actions { width: 100%; }
+  .nav-actions .btn { flex: 1; text-align: center; }
+  .auth-card { padding: 24px 18px; }
+  .auth-wrap { padding: 16px; align-items: flex-start; }
 }
