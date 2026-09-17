@@ -80,6 +80,11 @@ async function carregarCatalogo() {
     catalogo = data.servicos || [];
     renderFiltros();
     renderCatalogo();
+    var wa = catalogo.find(function (s) {
+      var n = (s.nome || '').toLowerCase();
+      return n.indexOf('whatsapp') !== -1 && n.indexOf('internacional') === -1;
+    });
+    if (wa && document.getElementById('act-app')) document.getElementById('act-app').textContent = wa.nome;
     const busca = document.getElementById('busca-servico');
     if (busca) busca.addEventListener('input', renderCatalogo);
   } catch (e) {
@@ -123,6 +128,58 @@ async function carregarPublico() {
   } catch (e) {}
 }
 
+function demoAtivacao() {
+  var card = document.getElementById('act-card');
+  var status = document.getElementById('act-status');
+  var box = document.getElementById('act-box');
+  if (!card) return;
+  function ciclo() {
+    card.classList.remove('is-in');
+    status.innerHTML = '<i></i> Aguardando SMS';
+    box.textContent = 'Código aparecerá aqui';
+    setTimeout(function () {
+      status.innerHTML = '<i></i> SMS recebido';
+      box.textContent = '482 931';
+      card.classList.add('is-in');
+    }, 2400);
+  }
+  ciclo();
+  setInterval(ciclo, 7000);
+}
+
+function nomePais(iso) {
+  try { return new Intl.DisplayNames(['pt-BR'], { type: 'region' }).of(iso) || iso; }
+  catch (e) { return iso; }
+}
+
+function preencherPaises(isos) {
+  var prefer = ['BR', 'US', 'GB', 'CA', 'ES', 'FR', 'DE', 'IT', 'PT', 'MX', 'AR', 'JP', 'IN', 'AU'];
+  var lista = prefer.filter(function (i) { return !isos.length || isos.indexOf(i) !== -1; });
+  if (isos.length) {
+    isos.forEach(function (i) { if (lista.indexOf(i) === -1 && lista.length < 18) lista.push(i); });
+  }
+  var track = document.getElementById('flag-track');
+  if (track) {
+    var html = lista.map(function (iso) {
+      return '<span><span class="fi fi-' + iso.toLowerCase() + '"></span> ' + nomePais(iso) + '</span>';
+    }).join('');
+    track.innerHTML = html + html;
+  }
+  var line = document.getElementById('world-line');
+  if (line) {
+    if (isos.length) {
+      line.textContent = 'Um DDI de cada canto: números de ' + isos.length + ' países no estoque agora.';
+    } else {
+      line.textContent = 'O DDI que o app pede — Brasil e o mundo, no mesmo painel.';
+    }
+  }
+}
+
 if (window.simsmsTrack) window.simsmsTrack('page_view');
+demoAtivacao();
 carregarCatalogo();
 carregarPublico();
+fetch('/api/paises-5sim').then(function (r) { return r.json(); }).then(function (d) {
+  var isos = (d.isos || []).map(function (x) { return String(x).toUpperCase(); });
+  preencherPaises(isos);
+}).catch(function () { preencherPaises([]); });

@@ -12,6 +12,10 @@
 </head>
 <body class="page-home">
 
+<div class="flag-rail" aria-hidden="true">
+  <div class="flag-track" id="flag-track"></div>
+</div>
+
 <header class="topbar">
   <div class="topbar-inner">
     <a href="/" class="brand">
@@ -37,27 +41,18 @@
       <p class="eyebrow"><span class="dot"></span> Número virtual · Pix · código no painel</p>
       <h1>Ative WhatsApp, Instagram e apps <span class="accent">sem usar seu chip.</span></h1>
       <p class="lead">Paga no Pix, reserva o número e o código aparece no painel — copia e cola no app. Sem mensalidade. Sem chip físico.</p>
+      <p class="world-line" id="world-line">O DDI que o app pede, de qualquer canto do mapa.</p>
       <div class="hero-ctas">
         <a href="#catalogo" class="btn btn-teal" id="cta-comprar">Escolher serviço</a>
         <a href="#como" class="btn btn-ghost">Ver como funciona</a>
       </div>
     </div>
-    <div class="hero-visual" aria-hidden="true">
-      <div class="phone-frame">
-        <div class="phone-notch"></div>
-        <div class="sms-demo">
-          <div class="sms-demo-top">
-            <span>Pedido ativo</span>
-            <span class="status-pill"><span class="dot"></span> SMS recebido</span>
-          </div>
-          <div class="number-reel">+55 11 9••••-4821</div>
-          <div class="bubble">
-            WhatsApp: seu código é <span class="code">847 291</span>
-          </div>
-          <p class="phone-hint">Copia e cola no app. Pronto.</p>
-        </div>
-      </div>
-    </div>
+    <aside class="act-card" id="act-card">
+      <p class="act-app" id="act-app">WhatsApp</p>
+      <p class="act-num">BR +55 •• •••••-••••</p>
+      <p class="act-wait" id="act-status"><i></i> Aguardando SMS</p>
+      <div class="act-box" id="act-box">Código aparecerá aqui</div>
+    </aside>
   </div>
 </section>
 
